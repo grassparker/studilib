@@ -1,12 +1,11 @@
+// Dashboard.tsx
 
 import React from 'react';
 import { FocusRoom } from './Study/FocusRoom';
 import { TinyHomeView } from './Home/TinyHomeView';
 import { Overview } from './Dashboard/Overview';
+import { Friends } from './Friends/Friends';
 import { User } from '../types';
-import { supabase } from './Auth/supabaseClient';
-import { createClient } from '@supabase/supabase-js';
-import { loginUser, signUpUser } from './Auth/auth';
 
 interface DashboardProps {
   activeTab: string;
@@ -22,6 +21,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeTab, user, updateCoi
       return <FocusRoom updateCoins={updateCoins} />;
     case 'tinyhome':
       return <TinyHomeView user={user} updateCoins={updateCoins} />;
+    case 'social': // <--- 2. Match the ID from Sidebar.tsx
+      return <Friends user={user} />;
     default:
       return (
         <div className="flex flex-col items-center justify-center h-64 text-slate-400">

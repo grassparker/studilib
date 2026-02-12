@@ -1,4 +1,5 @@
 
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import { AuthForms } from './components/Auth/AuthForms';
 import { Dashboard } from './components/Dashboard';
@@ -53,6 +54,7 @@ const App: React.FC = () => {
   }
 
   return (
+    <Router>
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
       
@@ -68,6 +70,7 @@ const App: React.FC = () => {
         </main>
       </div>
     </div>
+    </Router>
   );
 };
 

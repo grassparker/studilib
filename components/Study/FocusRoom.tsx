@@ -270,7 +270,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
         </section>
 
         <section className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col h-[400px]">
-          <h3 className="font-bold mb-4 text-slate-800">Study Chatroom</h3>
+          <h3 className="font-bold mb-4 text-slate-800">Write something down</h3>
           <div className="flex-1 overflow-y-auto mb-4 space-y-2">
             {messages.map((msg) => (
               <div key={msg.id} className="text-sm">
