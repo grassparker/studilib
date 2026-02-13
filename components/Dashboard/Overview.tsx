@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Goal } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 
+
 interface OverviewProps {
   user: User;
 }
@@ -105,6 +106,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-4">
+
       {/* LEFT COLUMN: Welcome & Goals */}
       <div className="lg:col-span-2 space-y-8">
         <section className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
@@ -112,7 +114,8 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
           <p className="opacity-90">Ready to crush your targets today?</p>
           <i className="fas fa-book-open absolute -bottom-4 -right-4 text-white/10 text-9xl"></i>
         </section>
-
+      
+      {/* Goals */}
         <section className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-bold text-slate-800 font-quicksand">Daily Focus Goals</h3>

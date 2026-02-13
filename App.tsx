@@ -6,37 +6,43 @@ import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Layout/Sidebar';
 import { TopBar } from './components/Layout/TopBar';
 import { User } from './types';
+import ProfileModal from './components/Profile/ProfileModal';
+import { supabase } from './components/Auth/supabaseClient';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
-    // Simulate checking local storage for a session
-    const savedUser = localStorage.getItem('studilib_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user as any); 
+      }
+      setIsLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user as any);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogin = (userData: User) => {
-    setUser(userData);
-    localStorage.setItem('studilib_user', JSON.stringify(userData));
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('studilib_user');
-  };
-
+  //CoINS!!!!
   const updateCoins = (amount: number) => {
     if (user) {
-      const updated = { ...user, coins: user.coins + amount };
-      setUser(updated);
-      localStorage.setItem('studilib_user', JSON.stringify(updated));
+      setUser({ ...user, coins: (user.coins || 0) + amount } as any);
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
   if (isLoading) {
@@ -50,26 +56,31 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    return <AuthForms onLogin={handleLogin} />;
+    return <AuthForms onLogin={() => {}} />;
   }
 
   return (
     <Router>
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
-      
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <TopBar user={user} />
+      <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout} />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <Dashboard 
-            activeTab={activeTab} 
-            user={user} 
-            updateCoins={updateCoins} 
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <TopBar user={user} onAvatarClick={() => setIsProfileOpen(true)} />
+          <ProfileModal
+            isOpen={isProfileOpen}
+            onClose={() => setIsProfileOpen(false)}
+            user={user}
           />
-        </main>
+
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <Dashboard 
+              activeTab={activeTab} 
+              user={user} 
+              updateCoins={updateCoins}
+            />
+          </main>
+        </div>
       </div>
-    </div>
     </Router>
   );
 };

@@ -7,9 +7,10 @@ import { loginUser, signUpUser } from '../Auth/auth';
 
 interface TopBarProps {
   user: User;
+  onAvatarClick?: () => void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ user }) => {
+export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
   return (
     <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-10">
       <div className="flex items-center gap-4">
@@ -33,7 +34,8 @@ export const TopBar: React.FC<TopBarProps> = ({ user }) => {
           <img 
             src={user.avatar} 
             alt="Avatar" 
-            className="w-10 h-10 rounded-xl bg-slate-100 border-2 border-amber-500 p-0.5"
+            onClick={onAvatarClick}
+            className="w-10 h-10 rounded-xl bg-slate-100 border-2 border-amber-500 p-0.5 cursor-pointer"
           />
         </div>
       </div>
