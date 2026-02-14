@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import { AuthForms } from './components/Auth/AuthForms';
@@ -15,10 +14,44 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+  // --- 1. DEFINE FUNCTIONS HERE (The "Brain" of the component) ---
+
+  const handleProfileUpdate = (updatedData: any) => {
+    setUser(prev => {
+      if (!prev) return null;
+      return { ...prev, ...updatedData };
+    });
+  };
+
+  const updateCoins = async (amount: number) => {
+    if (!user) return;
+    const newCount = (user.coins || 0) + amount;
+    
+    setUser(prev => {
+      if (!prev) return null;
+      return { ...prev, coins: newCount };
+    });
+
+    await supabase
+      .from('profiles')
+      .update({ coins: newCount })
+      .eq('id', user.id);
+  };
+
+  // --- 2. THE EFFECTS (Data Fetching) ---
+
   useEffect(() => {
+    const fetchProfileData = async (userId: string) => {
+      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (data) {
+        setUser(prev => ({ ...prev, ...data } as any));
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        setUser(session.user as any); 
+        setUser(session.user as any);
+        fetchProfileData(session.user.id);
       }
       setIsLoading(false);
     });
@@ -26,6 +59,7 @@ const App: React.FC = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user as any);
+        fetchProfileData(session.user.id);
       } else {
         setUser(null);
       }
@@ -34,16 +68,11 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  //CoINS!!!!
-  const updateCoins = (amount: number) => {
-    if (user) {
-      setUser({ ...user, coins: (user.coins || 0) + amount } as any);
-    }
-  };
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
+
+  // --- 3. THE RENDER (What actually shows on screen) ---
 
   if (isLoading) {
     return (
@@ -66,10 +95,13 @@ const App: React.FC = () => {
         
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <TopBar user={user} onAvatarClick={() => setIsProfileOpen(true)} />
+          
+          {/* We pass the function as a "prop" here */}
           <ProfileModal
             isOpen={isProfileOpen}
             onClose={() => setIsProfileOpen(false)}
             user={user}
+            onProfileUpdate={handleProfileUpdate}
           />
 
           <main className="flex-1 overflow-y-auto p-4 md:p-8">

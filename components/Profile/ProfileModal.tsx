@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 
@@ -20,12 +20,13 @@ interface ProfileModalProps {
     isOpen: boolean;
     onClose: () => void;
     user: User;
+    onProfileUpdate: (updatedData: any) => void; 
 }
 
-export default function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
+export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }: ProfileModalProps) {
     // 1. Hooks must ALWAYS be at the top level (before the 'if !isOpen' check)
     const [profile, setProfile] = useState<UserProfile>({
-        username: user.username || 'User',
+        username: (user as any).user_metadata?.username || user.username || 'User',
         stats: {
             focusTime: 45,
             pomodorosCompleted: 12,
@@ -41,21 +42,50 @@ export default function ProfileModal({ isOpen, onClose, user }: ProfileModalProp
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    const handleSaveProfile = () => {
-        setProfile({ ...profile, username: newUsername });
+    const handleSaveProfile = async () => {
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ username: newUsername })
+            .eq('id', user.id);
+
+        if (error) throw error;
+
+        onProfileUpdate({ username: newUsername }); 
+        
         setIsEditing(false);
+        } catch (e) { alert(e.message); }
     };
 
-    const handleChangePassword = () => {
-        if (newPassword === confirmPassword) {
+    const handleChangePassword = async () => {
+        if (newPassword !== confirmPassword) {
+            alert('Passwords do not match');
+            return;
+        }
+
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) throw error;
+
             alert('Password changed successfully');
-            setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
-        } else {
-            alert('Passwords do not match');
+            setCurrentPassword('');
+        } catch (error: any){
+            alert(error.message);
         }
     };
+
+    useEffect(() => {
+        setProfile(prev => ({
+            ...prev,
+            username: (user as any).username || (user as any).user_metadata?.username || 'User'
+        }));
+        setNewUsername((user as any).username || (user as any).user_metadata?.username || 'User');
+    }, [user]);
 
     // 2. Early return for modal visibility
     if (!isOpen) return null;

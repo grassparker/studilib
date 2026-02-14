@@ -1,11 +1,12 @@
 
 export interface User {
   id: string;
-  username: string;
-  email: string;
+  username?: string;
+  email?: string;
+  avatar_url?: string;
   coins: number;
-  avatar: string;
-  status: 'online' | 'studying' | 'break' | 'offline';
+  avatar?: string;
+  status?: 'online' | 'studying' | 'break' | 'offline';
   currentTask?: string;
 }
 

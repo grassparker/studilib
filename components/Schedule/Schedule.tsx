@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../Auth/supabaseClient';
 import { User } from '../../types';
 import { createClient } from '@supabase/supabase-js';
-import { loginUser, signUpUser } from '../Auth/auth';
+
 interface ScheduledTask {
   id: string;
   title: string;

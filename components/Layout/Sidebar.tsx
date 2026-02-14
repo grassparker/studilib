@@ -1,8 +1,6 @@
 
 import React from 'react';
-import { supabase } from '../Auth/supabaseClient';
-import { createClient } from '@supabase/supabase-js';
-import { loginUser, signUpUser } from '../Auth/auth';
+import { User } from '../../types';
 
 interface SidebarProps {
   activeTab: string;
