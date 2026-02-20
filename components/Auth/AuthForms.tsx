@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { User } from '../../types';
 import { supabase } from './supabaseClient';
 
 interface AuthFormsProps {
-  onLogin: () => void; // App.tsx handles the user state now, so this can be empty
+  onLogin: () => void;
 }
 
 export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
@@ -16,7 +15,6 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
 
     try {
       if (isLogin) {
@@ -31,87 +29,132 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
           password,
           options: {
             data: {
-              username: username, // This saves the username to Supabase metadata
+              username: username,
             },
           },
         });
         if (error) throw error;
-        alert("Check your email for the confirmation link!");
+        alert("ACCESS_GRANTED: CHECK_EMAIL_CONFIRMATION!");
       }
-      
-      // We don't need to manually create the 'User' object here anymore
-      // because App.tsx is listening via onAuthStateChange!
       onLogin(); 
-      
     } catch (error: any) {
-      alert(error.message || "An error occurred");
+      alert(error.message || "SYSTEM_ERROR: TRY_AGAIN");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-amber-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-amber-100">
-        {/* Banner Section */}
-        <div className="bg-amber-500 p-8 text-white text-center">
-          <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-            <i className="fas fa-book-reader text-4xl"></i>
+    <div className="min-h-screen flex items-center justify-center bg-[#FBBF24] p-4">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        .auth-scope * {
+          font-family: 'Press Start 2P', cursive !important;
+          text-transform: uppercase;
+        }
+
+        .pixel-card {
+          background: white;
+          border: 6px solid black;
+          box-shadow: 12px 12px 0 0 rgba(0,0,0,1);
+        }
+
+        .pixel-input {
+          background: white;
+          border: 4px solid black;
+          padding: 12px;
+          font-size: 8px;
+          outline: none;
+          width: 100%;
+        }
+
+        .pixel-btn {
+          background: #FBBF24;
+          border: 4px solid black;
+          padding: 16px;
+          font-size: 10px;
+          box-shadow: 4px 4px 0 0 black;
+          transition: all 0.1s;
+        }
+
+        .pixel-btn:active {
+          transform: translate(2px, 2px);
+          box-shadow: 2px 2px 0 0 black;
+        }
+
+        .tab-btn {
+          padding: 12px;
+          font-size: 8px;
+          border-bottom: 4px solid transparent;
+        }
+
+        .tab-btn.active {
+          border-bottom: 4px solid #FBBF24;
+          color: black;
+        }
+      `}</style>
+
+      <div className="auth-scope max-w-md w-full pixel-card overflow-hidden">
+        {/* Top Banner */}
+        <div className="bg-black p-8 text-white text-center border-b-4 border-black">
+          <div className="w-16 h-16 bg-white border-4 border-[#FBBF24] flex items-center justify-center mx-auto mb-4">
+            <i className="fas fa-terminal text-black text-2xl"></i>
           </div>
-          <h1 className="text-3xl font-bold font-quicksand">StudiLib</h1>
-          <p className="opacity-90">Your cozy corner to focus & grow.</p>
+          <h1 className="text-xl tracking-tighter mb-2">STUDILIB</h1>
+          <p className="text-[8px] text-amber-400">Welcome to StudiLib</p>
         </div>
 
         <div className="p-8">
           {/* Toggle Tabs */}
-          <div className="flex mb-8 bg-slate-100 p-1 rounded-xl">
+          <div className="flex mb-8 border-b-4 border-black">
             <button
               onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 rounded-lg font-medium transition-all ${isLogin ? 'bg-white shadow-sm text-amber-600' : 'text-slate-500'}`}
+              className={`flex-1 tab-btn ${isLogin ? 'active' : 'opacity-40'}`}
             >
-              Login
+              [ LOGIN ]
             </button>
             <button
               onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 rounded-lg font-medium transition-all ${!isLogin ? 'bg-white shadow-sm text-amber-600' : 'text-slate-500'}`}
+              className={`flex-1 tab-btn ${!isLogin ? 'active' : 'opacity-40'}`}
             >
-              Sign Up
+              [ SIGN_UP ]
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                <label className="block text-[8px] mb-2">USER_ID</label>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"
-                  placeholder="study_buddy_99"
+                  className="pixel-input"
+                  placeholder="ID_IDENTIFIER..."
                   required
                 />
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <label className="block text-[8px] mb-2">EMAIL_ADDRESS</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"
-                placeholder="hello@studilib.com"
+                className="pixel-input"
+                placeholder="USER@DOMAIN.COM"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label className="block text-[8px] mb-2">PASSWORD</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-amber-500"
-                placeholder="••••••••"
+                className="pixel-input"
+                placeholder="********"
                 required
               />
             </div>
@@ -119,11 +162,15 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all mt-4 disabled:bg-slate-300"
+              className="w-full pixel-btn disabled:opacity-50"
             >
-              {loading ? 'Processing...' : (isLogin ? 'Welcome Back!' : 'Start Your Journey')}
+              {loading ? 'PROCESSING...' : (isLogin ? 'INITIATE_SESSION' : 'REGISTER_USER')}
             </button>
           </form>
+
+          <p className="text-[6px] text-center mt-8 text-gray-400 tracking-widest">
+            SECURE_ENCRYPTION_ACTIVE // V.1.0
+          </p>
         </div>
       </div>
     </div>
