@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [coins, setCoins] = useState(0);
 
   // --- 1. DEFINE FUNCTIONS HERE (The "Brain" of the component) ---
 
@@ -71,6 +72,22 @@ const App: React.FC = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
+
+  useEffect(() => {
+  const fetchProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('coins')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) setCoins(data.coins);
+    }
+  };
+  fetchProfile();
+}, []);
 
   // --- 3. THE RENDER (What actually shows on screen) ---
 

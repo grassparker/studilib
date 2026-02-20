@@ -13,35 +13,39 @@ const triggerPopup = (title: string, body: string) => {
 };
 
 export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
-  // --- TIMER STATE ---
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [mode, setMode] = useState<TimerMode>(TimerMode.POMODORO);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
-  
-  // --- NOTES STATE ---
   const [notes, setNotes] = useState<string>('');
 
-  // 1. Initial Setup: Permissions & Load Notes
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) setCurrentUser(session.user);
+    };
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-
     const loadNotes = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('last_notes')
-          .eq('id', user.id)
-          .single();
+      if (currentUser) {
+        const { data } = await supabase.from('profiles').select('last_notes').eq('id', currentUser.id).single();
         if (data?.last_notes) setNotes(data.last_notes);
       }
     };
     loadNotes();
-  }, []);
+  }, [currentUser]);
 
-  // 2. Timer Logic
   useEffect(() => {
     let interval: any = null;
     if (isActive && timeLeft > 0) {
@@ -56,18 +60,19 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
 
   const handleComplete = async () => {
     setIsActive(false);
-    triggerPopup("Session Complete!", "Great job focusing!");
+    triggerPopup("QUEST_COMPLETE", "REWARDS_COLLECTED");
     
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
+    const minutesSpent = mode === TimerMode.POMODORO ? 25 : (mode === TimerMode.SHORT_BREAK ? 5 : 15);
+
+    if (currentUser) {
       await supabase.from('study_sessions').insert([{
-        user_id: session.user.id,
-        time: mode === TimerMode.POMODORO ? 25 : (mode === TimerMode.SHORT_BREAK ? 5 : 15),
+        user_id: currentUser.id,
+        time: minutesSpent,
         status: 'completed'
       }]);
     }
 
-    updateCoins(mode === TimerMode.POMODORO ? 10 : 2);
+    if (mode === TimerMode.POMODORO) updateCoins(25);
     resetTimer(mode);
   };
 
@@ -78,91 +83,154 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
     else setTimeLeft(15 * 60);
   };
 
-  // 3. Notes Functions
   const handleNoteChange = async (val: string) => {
     setNotes(val);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      // Auto-save to DB
-      await supabase.from('profiles').update({ last_notes: val }).eq('id', user.id);
+    if (currentUser) {
+      await supabase.from('profiles').update({ last_notes: val }).eq('id', currentUser.id);
     }
   };
 
   const downloadNotes = () => {
-    if (!notes.trim()) return alert("Notes are empty!");
-    
+    if (!notes.trim()) return;
     const date = new Date().toLocaleDateString();
-    const fileContent = `# Study Session Notes - ${date}\n\n${notes}`;
+    const fileContent = `# QUEST_LOG_${date}\n\n${notes}`;
     const blob = new Blob([fileContent], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
-    
     const link = document.createElement('a');
     link.href = url;
-    link.download = `focus-notes-${date.replace(/\//g, '-')}.md`;
-    document.body.appendChild(link);
+    link.download = `log-${date.replace(/\//g, '-')}.md`;
     link.click();
-    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  const progressPercentage = (timeLeft / (mode === TimerMode.POMODORO ? 25 * 60 : mode === TimerMode.SHORT_BREAK ? 5 * 60 : 15 * 60)) * 100;
+  const totalTime = mode === TimerMode.POMODORO ? 25 * 60 : mode === TimerMode.SHORT_BREAK ? 5 * 60 : 15 * 60;
+  const progressPercentage = ((totalTime - timeLeft) / totalTime) * 100;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 h-full">
-      {/* TIMER CARD */}
-      <div className="flex-1 bg-white rounded-[3rem] p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-slate-50">
-          <div className="h-full bg-amber-500 transition-all duration-1000 ease-linear" style={{ width: `${progressPercentage}%` }} />
+    <div className="game-ui-scope flex flex-col lg:flex-row gap-8 min-h-full p-4 lg:p-8">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        .game-ui-scope { image-rendering: pixelated; background: #F3F4F6; }
+        .game-ui-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
+        
+        .menu-box {
+          background: white;
+          border: 4px solid black;
+          box-shadow: 6px 6px 0 0 rgba(0,0,0,0.1);
+          padding: 20px;
+        }
+
+        .timer-text {
+          font-size: clamp(2rem, 12vw, 5rem);
+          color: black;
+          margin: 30px 0;
+          text-align: center;
+        }
+
+        .progress-container {
+          width: 100%;
+          height: 24px;
+          border: 4px solid black;
+          background: #EEE;
+        }
+
+        .progress-fill {
+          height: 100%;
+          background: #ffaa00;
+          transition: width 1s linear;
+        }
+
+        .btn-action {
+          background: #ffaa00;
+          border: 4px solid black;
+          padding: 14px 24px;
+          font-size: 10px;
+          cursor: pointer;
+          box-shadow: 4px 4px 0 0 black;
+        }
+        .btn-action:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 black; }
+
+        .btn-reset {
+          background: white;
+          border: 4px solid black;
+          padding: 12px;
+          cursor: pointer;
+        }
+
+        .mode-btn {
+          font-size: 7px;
+          padding: 8px 10px;
+          border-bottom: 4px solid transparent;
+          color: #999;
+        }
+        .mode-btn.active { border-bottom: 4px solid #FBBF24; color: black; }
+
+        .notes-input {
+          width: 100%;
+          min-height: 300px;
+          border: 4px solid black;
+          padding: 16px;
+          font-size: 10px;
+          line-height: 2;
+          resize: none;
+          outline: none;
+        }
+        
+        .ui-label { font-size: 10px; text-decoration: underline; margin-bottom: 16px; display: block; }
+      `}</style>
+
+      {/* TIMER SECTION (Top on mobile, Left on Desktop) */}
+      <div className="flex-1 menu-box flex flex-col items-center">
+        <span className="ui-label self-start">QUEST_TIMER</span>
+        
+        <div className="progress-container mb-6">
+          <div className="progress-fill" style={{ width: `${progressPercentage}%` }} />
         </div>
 
-        <div className="flex gap-4 mb-12 bg-slate-50 p-1.5 rounded-full">
+        <div className="flex flex-wrap justify-center gap-2 mb-6">
           {[TimerMode.POMODORO, TimerMode.SHORT_BREAK, TimerMode.LONG_BREAK].map((m) => (
             <button
               key={m}
               onClick={() => { setMode(m); resetTimer(m); }}
-              className={`px-6 py-2 rounded-full font-bold text-sm transition-all ${
-                mode === m ? 'bg-white shadow-sm text-amber-600' : 'text-slate-400 hover:text-amber-600'
-              }`}
+              className={`mode-btn ${mode === m ? 'active' : ''}`}
             >
               {m.replace('_', ' ')}
             </button>
           ))}
         </div>
 
-        <h1 className="text-9xl font-black text-slate-800 tracking-tighter mb-12 tabular-nums">
-          {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+        <h1 className="timer-text tabular-nums">
+          {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}
         </h1>
 
-        <div className="flex gap-6">
-          <button onClick={() => setIsActive(!isActive)} className={`px-12 py-4 rounded-2xl font-bold text-white transition-all active:scale-95 ${isActive ? 'bg-slate-800' : 'bg-amber-600 shadow-lg shadow-amber-200'}`}>
-            {isActive ? 'Pause' : 'Start Focus'}
+        <div className="flex gap-4 mb-4">
+          <button onClick={() => setIsActive(!isActive)} className="btn-action">
+            {isActive ? 'HALT' : 'BEGIN'}
           </button>
-          <button onClick={() => resetTimer(mode)} className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-400 hover:text-amber-600 border border-slate-100 flex items-center justify-center">
+          <button onClick={() => resetTimer(mode)} className="btn-reset">
             <i className="fas fa-undo"></i>
           </button>
         </div>
       </div>
 
-      {/* NOTES SIDEBAR */}
-      <div className="w-full lg:w-96 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col h-[500px] lg:h-auto">
-        <div className="flex items-center justify-between mb-4 px-2">
-          <h3 className="font-bold text-slate-800">Focus Notes</h3>
-          <button 
-            onClick={downloadNotes}
-            className="text-xs bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg font-bold hover:bg-amber-100 transition-colors flex items-center gap-2"
-          >
-            <i className="fas fa-download"></i>
-            Export .md
-          </button>
+      {/* NOTES SECTION (Bottom on mobile, Right on Desktop) */}
+      <div className="w-full lg:w-[400px] menu-box flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <span className="ui-label">QUEST_LOG</span>
+          <button onClick={downloadNotes} className="text-[7px] text-gray-400">[EXPORT]</button>
         </div>
 
         <textarea
           value={notes}
           onChange={(e) => handleNoteChange(e.target.value)}
-          placeholder="What are we smashing today?"
-          className="flex-1 w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none placeholder:text-slate-400"
+          placeholder="ENTER_INTEL..."
+          className="notes-input flex-1"
         />
-        <p className="text-[10px] text-slate-400 mt-3 px-2 italic">Notes auto-save to your profile.</p>
+        
+        <div className="mt-4 flex justify-between text-[7px] text-gray-400">
+          <p>STATUS: ONLINE</p>
+          <p>CHARS: {notes.length}</p>
+        </div>
       </div>
     </div>
   );

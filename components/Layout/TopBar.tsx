@@ -7,44 +7,78 @@ interface TopBarProps {
 }
 
 export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
-  // 1. Look everywhere for the name!
   const displayName = user.username || 
-                      (user as any).user_metadata?.username || 
                       user.email?.split('@')[0] || 
-                      "User";
+                      "PLAYER_1";
 
-  // 2. Look for the avatar link (Yesterday it was 'avatar', Today it is 'avatar_url')
   const avatarUrl = (user as any).avatar_url || 
                     user.avatar || 
-                    (user as any).user_metadata?.avatar_url || 
                     `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`;
 
-  // 3. Coins (Make sure they default to 0 so the bubble isn't empty)
   const displayCoins = user.coins ?? 0;
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 z-10">
+    <header className="h-20 bg-[#111] border-b-4 border-black flex items-center justify-between px-4 md:px-8 z-10 pixel-font text-white">
+      
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        .pixel-font { font-family: 'Press Start 2P', cursive; }
+        
+        .coin-box {
+          background: #333;
+          border: 4px solid #ffd700;
+          box-shadow: 4px 4px 0 0 black;
+          padding: 8px 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .avatar-frame {
+          border: 4px solid white;
+          box-shadow: 4px 4px 0 0 black;
+          background: #444;
+          image-rendering: pixelated;
+        }
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          background: #00ff00;
+          border: 1px solid black;
+          display: inline-block;
+          margin-right: 8px;
+        }
+      `}</style>
+
+      {/* Left Side: Currency HUD */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-amber-100 px-3 py-1 rounded-full text-amber-700 font-bold border border-amber-200 shadow-sm">
-          <i className="fas fa-coins text-amber-500"></i>
-          <span>{displayCoins}</span>
+        <div className="coin-box">
+          <i className="fas fa-coins text-[#ffd700] text-sm animate-pulse"></i>
+          <span className="text-[10px] tracking-widest text-[#ffd700]">GP_{displayCoins}</span>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        {/* ... (keep your bell button code) ... */}
-        
-        <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold text-slate-800 leading-tight">{displayName}</p>
-            <p className="text-[10px] text-green-500 font-medium uppercase tracking-wider">{user.status || 'Online'}</p>
+      {/* Right Side: Player Info */}
+      <div className="flex items-center gap-6">
+        <div className="text-right hidden sm:block border-r-4 border-[#333] pr-6">
+          <p className="text-[10px] mb-2 tracking-tighter">{displayName}</p>
+          <div className="flex items-center justify-end">
+            <span className="status-dot"></span>
+            <p className="text-[8px] text-[#00ff00]">{user.status || 'READY'}</p>
           </div>
+        </div>
+
+        <div className="relative group" onClick={onAvatarClick}>
           <img 
             src={avatarUrl} 
-            alt="Avatar" 
-            onClick={onAvatarClick}
-            className="w-10 h-10 rounded-xl bg-slate-100 border-2 border-amber-500 p-0.5 cursor-pointer object-cover"
+            alt="HUD_AVATAR" 
+            className="w-12 h-12 avatar-frame cursor-pointer hover:scale-105 active:scale-95 transition-transform"
           />
+          {/* Level Overlay (Fake it till you make it!) */}
+          <div className="absolute -bottom-2 -left-2 bg-white text-black text-[6px] px-1 border-2 border-black font-bold">
+            LV_1
+          </div>
         </div>
       </div>
     </header>

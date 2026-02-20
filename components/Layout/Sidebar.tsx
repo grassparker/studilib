@@ -1,6 +1,4 @@
-
-import React from 'react';
-import { User } from '../../types';
+import React, { useState } from 'react';
 
 interface SidebarProps {
   activeTab: string;
@@ -9,53 +7,163 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogout }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   const menuItems = [
-    { id: 'dashboard', icon: 'fa-th-large', label: 'Dashboard' },
-    { id: 'focus', icon: 'fa-stopwatch', label: 'Focus Room' },
-    { id: 'tinyhome', icon: 'fa-home', label: 'My Tiny Home' },
-    { id: 'schedule', icon: 'fa-calendar-alt', label: 'Schedule' },
-    { id: 'social', icon: 'fa-users', label: 'Friends' },
-    { id: 'stats', icon: 'fa-chart-pie', label: 'Statistics' },
+    { id: 'dashboard', icon: 'fa-th-large', label: 'STATUS' },
+    { id: 'focus', icon: 'fa-stopwatch', label: 'QUEST' },
+    { id: 'tinyhome', icon: 'fa-home', label: 'HAVEN' },
+    { id: 'schedule', icon: 'fa-calendar-alt', label: 'LOG' },
+    { id: 'social', icon: 'fa-users', label: 'PARTY' }
   ];
 
+  const handleTabClick = (id: string) => {
+    onTabChange(id);
+    setIsOpen(false); 
+  };
+
   return (
-    <aside className="w-20 md:w-64 bg-white border-r border-slate-200 flex flex-col h-full z-20">
-      <div className="p-6 hidden md:block">
-        <h2 className="text-2xl font-bold text-amber-600 font-quicksand flex items-center gap-2">
-          <i className="fas fa-book-reader"></i>
-          StudiLib
+    <>
+      {/* 1. MOBILE BOTTOM BAR - Social Theme */}
+      <div className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-white border-t-4 border-black z-[100] p-4 flex justify-between items-center">
+        <h2 className="text-[10px] text-black font-pixel">
+          <i className="fas fa-terminal mr-2 text-amber-500"></i> STUDI_OS
         </h2>
-      </div>
-      <div className="p-4 md:hidden flex justify-center">
-        <i className="fas fa-book-reader text-2xl text-amber-600"></i>
-      </div>
-
-      <nav className="flex-1 mt-4 px-3 space-y-1">
-        {menuItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onTabChange(item.id)}
-            className={`w-full flex items-center justify-center md:justify-start gap-4 px-4 py-3 rounded-2xl transition-all ${
-              activeTab === item.id
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'text-slate-500 hover:bg-amber-50 hover:text-amber-600'
-            }`}
-          >
-            <i className={`fas ${item.icon} text-lg w-6`}></i>
-            <span className="hidden md:block font-medium">{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      <div className="p-4 border-t border-slate-100">
         <button 
-          onClick={onLogout}
-          className="w-full flex items-center justify-center md:justify-start gap-4 px-4 py-3 text-slate-400 hover:text-red-500 transition-colors rounded-2xl"
+          onClick={() => setIsOpen(!isOpen)}
+          className="bg-white border-4 border-black text-black px-3 py-1 text-[8px] font-pixel shadow-[4px_4px_0_0_#000] active:translate-y-1 active:shadow-none"
         >
-          <i className="fas fa-sign-out-alt text-lg w-6"></i>
-          <span className="hidden md:block font-medium">Log Out</span>
+          {isOpen ? 'CLOSE' : 'MENU'}
         </button>
       </div>
-    </aside>
+
+      {/* 2. SIDEBAR - Social/Party Aesthetic */}
+      <aside className={`
+        fixed inset-y-0 left-0 w-72 bg-[#fdfdfd] border-r-4 border-black flex flex-col transition-transform duration-300 transform
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
+        md:relative md:translate-x-0 md:flex
+        z-[90] 
+        h-full md:h-screen
+        pb-16 md:pb-0
+      `}>
+        
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+          .font-pixel { font-family: 'Press Start 2P', cursive; }
+          
+          .menu-container-social {
+            border: 4px solid black;
+            box-shadow: 8px 8px 0 0 rgba(0,0,0,0.1);
+            background: white; 
+            padding: 30px 16px;
+          }
+
+          .menu-option {
+            background: transparent;
+            border: none;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            text-align: left;
+            transition: transform 0.1s;
+          }
+
+          .menu-icon-big {
+            font-size: 1.2rem;
+            width: 40px;
+            text-align: center;
+            margin-right: 12px;
+            color: black;
+          }
+
+          .menu-option.active {
+            background: #FBBF24; /* Amber Selection */
+            border: 4px solid black;
+            box-shadow: 4px 4px 0 0 black;
+            transform: translate(-2px, -2px);
+          }
+
+          .menu-option.active span {
+            color: black;
+            text-shadow: none;
+          }
+
+          .active-cursor-black {
+            position: absolute;
+            left: -40px;
+            color: black;
+            font-size: 18px;
+            animation: finger-bob 0.6s steps(2, start) infinite;
+          }
+
+          @keyframes finger-bob {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(5px); }
+          }
+        `}</style>
+
+        {/* Desktop Header */}
+        <div className="p-8 hidden md:block">
+          <h2 className="text-[12px] text-black font-pixel flex items-center gap-3">
+            <span className="bg-black text-amber-400 p-2 border-2 border-black">
+              <i className="fas fa-terminal"></i>
+            </span>
+            STUDI_OS
+          </h2>
+        </div>
+
+        {/* SOCIAL MENU BOX */}
+        <nav className="flex-1 m-4 menu-container-social overflow-y-auto">
+          <div className="space-y-6">
+            {menuItems.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <div key={item.id} className="relative ml-10">
+                  {isActive && (
+                    <span className="active-cursor-black font-pixel">
+                      <i className="fas fa-hand-point-right"></i>
+                    </span>
+                  )}
+                  
+                  <button
+                    onClick={() => handleTabClick(item.id)}
+                    className={`menu-option ${isActive ? 'active' : 'opacity-40 hover:opacity-100 hover:translate-x-1'}`}
+                  >
+                    <i className={`fas ${item.icon} menu-icon-big`}></i>
+                    <span className="font-pixel text-[10px] text-black tracking-tighter">
+                      {item.label}
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* System Footer - Social Styled */}
+        <div className="p-6 bg-white border-t-4 border-black">
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-white text-red-600 border-4 border-black font-pixel shadow-[4px_4px_0_0_black] active:translate-y-1 active:shadow-none transition-all hover:bg-red-50"
+          >
+            <i className="fas fa-power-off"></i>
+            <span className="text-[8px]">SHUT_DOWN</span>
+          </button>
+          <p className="text-[6px] text-slate-400 text-center font-pixel mt-6 uppercase tracking-widest">
+            V.1.0.0 - BETA 
+          </p>
+        </div>
+      </aside>
+
+      {/* 3. OVERLAY */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </>
   );
 };

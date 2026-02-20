@@ -2,13 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 
-// Deleted "import { error } from 'console'" - it crashes browsers!
-
-interface FriendsProps {
-  user: User;
-}
-
-export const Friends: React.FC<FriendsProps> = ({ user }) => {
+export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
@@ -18,8 +12,7 @@ export const Friends: React.FC<FriendsProps> = ({ user }) => {
     fetchFriendsAndRequests();
   }, [user.id]);
 
-const fetchFriendsAndRequests = async () => {
-    // 1. Fetch Accepted Friends
+  const fetchFriendsAndRequests = async () => {
     const { data: friendshipData } = await supabase
       .from('friendships')
       .select('friend_id')
@@ -34,31 +27,20 @@ const fetchFriendsAndRequests = async () => {
       if (profiles) setFriends(profiles);
     }
 
-    // 2. Fetch Pending Requests (Step 1: Get IDs)
-    const { data: idList, error: idError } = await supabase
+    const { data: idList } = await supabase
       .from('friendships')
       .select('user_id')
       .eq('friend_id', user.id)
       .eq('status', 'pending');
 
-    if (idError) {
-      console.error("Error fetching request IDs:", idError);
-      return;
-    }
-
-    // Step 2: Get Profiles for those IDs
     if (idList && idList.length > 0) {
-      const { data: requesterProfiles, error: profileError } = await supabase
+      const { data: requesterProfiles } = await supabase
         .from('profiles')
         .select('id, username, avatar_url')
         .in('id', idList.map(item => item.user_id));
 
       if (requesterProfiles) {
-        const formattedRequests = requesterProfiles.map(p => ({
-          user_id: p.id,
-          profiles: p
-        }));
-        setPendingRequests(formattedRequests);
+        setPendingRequests(requesterProfiles.map(p => ({ user_id: p.id, profiles: p })));
       }
     } else {
       setPendingRequests([]);
@@ -72,91 +54,138 @@ const fetchFriendsAndRequests = async () => {
       .eq('email', searchEmail.trim())
       .single();
     if (data) setSearchResults([data]);
+    else alert("PLAYER NOT FOUND");
   };
 
   const sendRequest = async (friendId: string) => {
-    if (friendId === user.id) {
-        alert("You can't add yourself as a friend! That's a bit lonely. 😅");
-        return;
-    }
-
+    if (friendId === user.id) return alert("LONELY_HERO_ERROR");
     const { error } = await supabase.from('friendships').insert([
         { user_id: user.id, friend_id: friendId, status: 'pending' }
     ]);
-
-    if (error) {
-        if (error.code === '23505') {
-            alert("A request is already pending or you are already friends!");
-        } else {
-            console.error("Error sending request:", error);
-            alert("An error occurred while sending the request. Please try again.");
-        }
-    }
-    alert("Request sent!");
+    if (error) alert("ALREADY PENDING!");
+    else alert("REQUEST SENT!");
   };
 
   const acceptFriend = async (requesterId: string) => {
-    // Update their request to us
-    await supabase.from('friendships')
-      .update({ status: 'accepted' })
-      .eq('user_id', requesterId)
-      .eq('friend_id', user.id);
-    
-    // Create reciprocal link so we are both in each other's lists
-    await supabase.from('friendships').insert([
-      { user_id: user.id, friend_id: requesterId, status: 'accepted' }
-    ]);
-    
+    await supabase.from('friendships').update({ status: 'accepted' }).eq('user_id', requesterId).eq('friend_id', user.id);
+    await supabase.from('friendships').insert([{ user_id: user.id, friend_id: requesterId, status: 'accepted' }]);
     fetchFriendsAndRequests();
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 p-4">
-      {/* Search Section */}
-      <section className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-        <h2 className="text-xl font-bold mb-4 font-quicksand text-slate-800">Find Study Buddies</h2>
-        <div className="flex gap-2">
+    <div className="social-scope max-w-4xl mx-auto space-y-8 p-4 overflow-hidden">
+      
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        .social-scope {
+          image-rendering: pixelated;
+        }
+
+        .social-scope * {
+          font-family: 'Press Start 2P', cursive !important;
+          text-transform: uppercase;
+        }
+
+        .social-scope i {
+          font-family: "Font Awesome 6 Free" !important;
+          text-transform: none !important;
+        }
+
+        .pixel-box-white {
+          border: 4px solid black;
+          background: white;
+          box-shadow: 8px 8px 0 0 rgba(0,0,0,0.2);
+          padding: 24px;
+        }
+
+        .pixel-box-green {
+          border: 4px solid black;
+          background: #90ee90;
+          box-shadow: 8px 8px 0 0 #2d6a30;
+          padding: 24px;
+        }
+
+        .pixel-input-field {
+          border: 4px solid black;
+          padding: 12px;
+          background: #fff;
+          outline: none;
+          font-size: 10px;
+          width: 100%;
+        }
+
+        .pixel-btn-action {
+          border: 4px solid black;
+          background: #ffaa00;
+          padding: 12px 20px;
+          box-shadow: inset -4px -4px 0 0 #cc8800;
+          cursor: pointer;
+          font-size: 10px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .pixel-btn-action:active { 
+          box-shadow: inset 4px 4px 0 0 #cc8800;
+          transform: translateY(2px);
+        }
+
+        .pixel-avatar {
+          border: 4px solid black;
+          background: white;
+          width: 64px;
+          height: 64px;
+        }
+      `}</style>
+
+      {/* SEARCH SECTION */}
+      <section className="pixel-box-white">
+        <h2 className="text-[12px] mb-8 underline decoration-double">SEARCH_PLAYERS</h2>
+        <div className="flex flex-col md:flex-row gap-4">
           <input 
             type="email"
-            placeholder="Enter friend's email..."
-            className="flex-1 border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-amber-500 text-slate-700"
+            placeholder="INPUT_EMAIL..."
+            className="pixel-input-field"
             value={searchEmail}
             onChange={(e) => setSearchEmail(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
-          <button onClick={handleSearch} className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-xl font-bold transition-colors">
-            Search
+          <button onClick={handleSearch} className="pixel-btn-action whitespace-nowrap">
+            <i className="fas fa-search text-lg"></i> FIND
           </button>
         </div>
         
         {searchResults.map(result => (
-          <div key={result.id} className="mt-4 flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-            <div className="flex items-center gap-3">
-              <img src={result.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${result.username}`} className="w-10 h-10 rounded-full" />
-              <span className="font-bold text-slate-700">{result.username}</span>
+          <div key={result.id} className="mt-8 flex items-center justify-between p-6 border-4 border-black border-dashed bg-slate-50 animate-pulse">
+            <div className="flex items-center gap-6">
+              <img src={result.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${result.username}`} className="pixel-avatar" />
+              <span className="text-[10px]">{result.username}</span>
             </div>
-            <button onClick={() => sendRequest(result.id)} className="bg-white text-amber-600 border border-amber-200 px-4 py-1.5 rounded-lg font-bold hover:bg-amber-50">
-              + Add Friend
+            <button onClick={() => sendRequest(result.id)} className="pixel-btn-action bg-white shadow-none">
+              <i className="fas fa-user-plus text-lg"></i> ADD
             </button>
           </div>
         ))}
       </section>
 
-      {/* Pending Requests Section */}
+      {/* PENDING SECTION */}
       {pendingRequests.length > 0 && (
-        <section className="bg-amber-50 p-6 rounded-3xl border border-amber-100 shadow-sm">
-          <h2 className="text-xl font-bold mb-4 text-amber-800 flex items-center gap-2">
-            <i className="fas fa-user-plus"></i> Friend Requests
-          </h2>
-          <div className="space-y-3">
+        <section className="pixel-box-green">
+          <h2 className="text-[12px] mb-6 text-green-900">! INCOMING_REQUESTS</h2>
+          <div className="space-y-6">
             {pendingRequests.map((request) => (
-              <div key={request.user_id} className="flex items-center justify-between bg-white p-4 rounded-2xl shadow-sm border border-amber-100">
-                <div className="flex items-center gap-3">
-                   <img src={request.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${request.profiles?.username}`} className="w-10 h-10 rounded-full" />
-                   <span className="font-bold text-slate-700">{request.profiles?.username} <span className="font-normal text-slate-500 text-sm">wants to study!</span></span>
+              <div key={request.user_id} className="flex items-center justify-between bg-white border-4 border-black p-6">
+                <div className="flex items-center gap-6">
+                   <img src={request.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${request.profiles?.username}`} className="pixel-avatar" />
+                   <div>
+                     <span className="text-[10px]">{request.profiles?.username}</span>
+                     <p className="text-[7px] text-slate-500 mt-2">WANTS_TO_JOIN</p>
+                   </div>
                 </div>
-                <button onClick={() => acceptFriend(request.user_id)} className="bg-green-500 hover:bg-green-600 text-white px-5 py-1.5 rounded-xl text-sm font-bold transition-shadow hover:shadow-md">
-                  Accept
+                <button onClick={() => acceptFriend(request.user_id)} className="pixel-btn-action bg-[#45a049] text-white">
+                  <i className="fas fa-check-double text-lg"></i> ACCEPT
                 </button>
               </div>
             ))}
@@ -164,20 +193,25 @@ const fetchFriendsAndRequests = async () => {
         </section>
       )}
 
-      {/* Friends List Section */}
-      <section className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-        <h2 className="text-xl font-bold mb-4 text-slate-800">Your Friends</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* FRIENDS LIST SECTION */}
+      <section className="pixel-box-white">
+        <h2 className="text-[12px] mb-8 underline decoration-double">YOUR_PARTY</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {friends.length > 0 ? friends.map(friend => (
-            <div key={friend.id} className="flex items-center gap-3 p-4 border border-slate-50 rounded-2xl hover:bg-slate-50 transition-colors">
+            <div key={friend.id} className="flex items-center gap-6 p-6 border-4 border-slate-200 hover:border-black transition-all bg-white group cursor-default shadow-[4px_4px_0_0_#eee] hover:shadow-[4px_4px_0_0_#000]">
                 <div className="relative">
-                    <img src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} className="w-12 h-12 rounded-xl" />
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                    <img src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} className="pixel-avatar" />
+                    <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-[#00ff00] border-4 border-black"></div>
                 </div>
-                <p className="font-bold text-slate-700">{friend.username}</p>
+                <div>
+                  <p className="text-[10px] font-bold">{friend.username}</p>
+                  <p className="text-[7px] text-blue-600 mt-3 flex items-center gap-2">
+                    <i className="fas fa-shield-halved"></i> PARTY_MEMBER
+                  </p>
+                </div>
             </div>
           )) : (
-            <p className="text-slate-400 text-sm italic col-span-2 text-center py-8">No friends added yet. Start by searching for an email!</p>
+            <p className="text-[8px] text-slate-400 italic col-span-2 text-center py-12">LOBBY_EMPTY... FIND_ALLIES_ABOVE</p>
           )}
         </div>
       </section>

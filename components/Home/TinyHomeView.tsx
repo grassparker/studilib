@@ -1,112 +1,170 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, HomeItem } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
-import { createClient } from '@supabase/supabase-js';
-import { loginUser, signUpUser } from '../Auth/auth';
 
-interface TinyHomeViewProps {
-  user: User;
-  updateCoins: (amount: number) => void;
+interface InteractiveItem extends HomeItem {
+  level: number;
 }
 
-export const TinyHomeView: React.FC<TinyHomeViewProps> = ({ user, updateCoins }) => {
-  const [items, setItems] = useState<HomeItem[]>([
-    { id: '1', name: 'Simple Desk', price: 0, icon: 'fa-desk', type: 'furniture', position: { x: 5, y: 5 } },
-  ]);
-  const [inspiration, setInspiration] = useState('');
-  const [isLoadingInspo, setIsLoadingInspo] = useState(false);
+export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) => void }> = ({ user, updateCoins }) => {
+  const [items, setItems] = useState<InteractiveItem[]>([]);
+  const GRID_SIZE = 10;
+
+  useEffect(() => {
+    const loadHome = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase.from('profiles').select('home_layout').eq('id', user.id).single();
+      if (data?.home_layout) setItems(data.home_layout);
+    };
+    loadHome();
+  }, [user.id]);
 
   const shopItems = [
-    { id: 'shelf', name: 'Oak Bookshelf', price: 20, icon: 'fa-list-ul' },
-    { id: 'lamp', name: 'Study Lamp', price: 15, icon: 'fa-lightbulb' },
-    { id: 'plant', name: 'Potted Lily', price: 10, icon: 'fa-leaf' },
-    { id: 'chair', name: 'Ergo Chair', price: 30, icon: 'fa-chair' },
-    { id: 'rug', name: 'Cozy Rug', price: 25, icon: 'fa-square' },
-    { id: 'coffee', name: 'Coffee Station', price: 40, icon: 'fa-mug-hot' },
+    { id: 'shelf', name: 'BOOKS', price: 20, icon: 'fa-list-ul', color: 'bg-[#8b4513]', action: 'SORT' },
+    { id: 'lamp', name: 'LAMP', price: 15, icon: 'fa-lightbulb', color: 'bg-[#ffd700]', action: 'GLOW' },
+    { id: 'plant', name: 'PLANT', price: 10, icon: 'fa-leaf', color: 'bg-[#228b22]', action: 'GROW' },
+    { id: 'coffee', name: 'BEANS', price: 40, icon: 'fa-mug-hot', color: 'bg-[#5c4033]', action: 'BREW' },
   ];
 
-  const buyItem = (item: any) => {
-    if (user.coins >= item.price) {
-      updateCoins(-item.price);
-      setItems([...items, { ...item, position: { x: Math.floor(Math.random() * 8) + 1, y: Math.floor(Math.random() * 8) + 1 } }]);
-    } else {
-      alert("Not enough coins! Go study some more! 📖");
+  const saveHomeToDB = async (updatedItems: InteractiveItem[]) => {
+    await supabase.from('profiles').update({ home_layout: updatedItems }).eq('id', user.id);
+  };
+
+  const buyItem = (shopItem: any) => {
+    if (items.some(i => i.name === shopItem.name)) return;
+    if (user.coins < shopItem.price) return;
+
+    let newPos = { x: 0, y: 0 };
+    let found = false;
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        if (!items.some(i => i.position.x === x && i.position.y === y)) {
+          newPos = { x, y };
+          found = true; break;
+        }
+      }
+      if (found) break;
+    }
+
+    if (found) {
+      updateCoins(-shopItem.price);
+      const newItem: InteractiveItem = {
+        id: crypto.randomUUID(),
+        name: shopItem.name,
+        icon: shopItem.icon,
+        price: shopItem.price,
+        type: 'furniture',
+        position: newPos,
+        level: 1 
+      };
+      const updated = [...items, newItem];
+      setItems(updated);
+      saveHomeToDB(updated);
     }
   };
 
+  const upgradeItem = (id: string) => {
+    const cost = 15;
+    if (user.coins < cost) return;
+    const updated = items.map(item => item.id === id ? { ...item, level: (item.level || 1) + 1 } : item);
+    updateCoins(-cost);
+    setItems(updated);
+    saveHomeToDB(updated);
+  };
+
   return (
-    <div className="flex flex-col h-full gap-8">
+    <div className="haven-scope flex flex-col min-h-full gap-4 p-4 pb-24 overflow-y-auto lg:overflow-hidden">
+      
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        .haven-scope { image-rendering: pixelated; }
+        .haven-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
+
+        .pixel-border-social {
+          background: white;
+          border: 4px solid black;
+          box-shadow: 6px 6px 0 0 rgba(0,0,0,1);
+        }
+
+        .room-grid {
+          background-color: #f0f0f0;
+          background-image: 
+            linear-gradient(to right, #ddd 1px, transparent 1px),
+            linear-gradient(to bottom, #ddd 1px, transparent 1px);
+          background-size: 10% 10%;
+          aspect-ratio: 1 / 1; /* Keeps the room square on mobile */
+          width: 100%;
+          position: relative;
+          border: 4px solid black;
+        }
+
+        .haven-scope i {
+          font-family: "Font Awesome 6 Free" !important;
+          text-transform: none !important;
+        }
+      `}</style>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
-        {/* The House Canvas */}
-        <div className="lg:col-span-2 bg-white rounded-[3rem] p-8 shadow-xl border border-slate-100 flex flex-col">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-bold font-quicksand text-slate-800">Your Tiny Study Haven</h2>
-              <p className="text-slate-500 text-sm">Design your perfect focus space with your earned coins.</p>
-            </div>
-            <div className="bg-amber-100 text-amber-700 font-bold px-4 py-2 rounded-2xl flex items-center gap-2">
-              <i className="fas fa-coins"></i>
-              {user.coins}
+        
+        {/* The Pixel Room (Social Theme) */}
+        <div className="lg:col-span-2 pixel-border-social p-4 md:p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-4 text-black">
+            <h2 className="text-[10px] border-b-4 border-black pb-1">STUDY_ZONE.EXE</h2>
+            <div className="bg-[#FBBF24] text-black px-3 py-1 border-4 border-black text-[10px] font-bold">
+              $ {user.coins}
             </div>
           </div>
 
-          <div className="flex-1 bg-slate-50 rounded-[2rem] border-4 border-slate-100 tiny-home-grid relative overflow-hidden group">
-            {/* Grid Visualization */}
-            <div className="absolute inset-0 grid grid-cols-10 grid-rows-10 opacity-20 pointer-events-none">
-              {Array.from({ length: 100 }).map((_, i) => (
-                <div key={i} className="border border-slate-300"></div>
-              ))}
-            </div>
-
-            {/* Placed Items */}
-            {items.map((item, i) => (
-              <div
-                key={i}
-                className="absolute w-16 h-16 bg-white rounded-xl shadow-lg border border-slate-100 flex items-center justify-center cursor-move transform hover:scale-110 transition-transform"
-                style={{ 
-                  left: `${item.position.x * 10}%`, 
-                  top: `${item.position.y * 10}%`,
-                  zIndex: item.position.y 
-                }}
-              >
-                <i className={`fas ${item.icon} text-2xl text-amber-600`}></i>
-              </div>
-            ))}
-
-            {items.length === 0 && (
-              <div className="h-full flex flex-col items-center justify-center text-slate-300">
-                <i className="fas fa-box-open text-6xl mb-4"></i>
-                <p className="font-bold">Room is empty. Buy something!</p>
-              </div>
-            )}
+          <div className="room-grid">
+            {items.map((item) => {
+              const shopData = shopItems.find(s => s.icon === item.icon);
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => upgradeItem(item.id)}
+                  className={`absolute w-[10%] h-[10%] ${shopData?.color || 'bg-white'} border-2 md:border-4 border-black flex items-center justify-center cursor-pointer z-20`}
+                  style={{ 
+                    left: `${item.position.x * 10}%`, 
+                    top: `${item.position.y * 10}%` 
+                  }}
+                >
+                  <i className={`fas ${item.icon} text-white text-[10px] md:text-lg`}></i>
+                  <div className="absolute -top-2 -right-2 bg-white text-black text-[6px] md:text-[8px] font-bold px-1 border-2 border-black z-30">
+                    L{item.level}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* The Shop */}
-        <div className="space-y-8 flex flex-col">
-          <section className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex-1 overflow-y-auto">
-            <h3 className="text-xl font-bold mb-6 font-quicksand">Haven Shop</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {shopItems.map((item) => (
+        {/* Pixel Shop (Social Theme) */}
+        <section className="pixel-border-social p-6 h-fit lg:h-full lg:overflow-y-auto">
+          <h3 className="text-center mb-6 text-[10px] text-black underline tracking-widest">SHOP_LIST</h3>
+          <div className="grid grid-cols-1 gap-4">
+            {shopItems.map((item) => {
+              const owned = items.find(i => i.name === item.name);
+              return (
                 <button
                   key={item.id}
+                  disabled={!!owned}
                   onClick={() => buyItem(item)}
-                  className="bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-amber-300 hover:bg-amber-50 transition-all flex flex-col items-center gap-2 group text-center"
+                  className={`w-full p-3 flex items-center gap-4 border-4 border-black text-black transition-all ${owned ? 'bg-gray-200 opacity-50 cursor-not-allowed' : 'bg-white active:translate-x-1 active:translate-y-1 active:shadow-none shadow-[4px_4px_0_0_rgba(0,0,0,1)]'}`}
                 >
-                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 group-hover:text-amber-500 shadow-sm transition-colors mb-1">
-                    <i className={`fas ${item.icon} text-xl`}></i>
+                  <div className={`${item.color} w-10 h-10 border-2 border-black flex items-center justify-center text-white shrink-0`}>
+                    <i className={`fas ${item.icon}`}></i>
                   </div>
-                  <span className="text-xs font-bold text-slate-700">{item.name}</span>
-                  <div className="flex items-center gap-1 text-[10px] font-black text-amber-600">
-                    <i className="fas fa-coins text-[8px]"></i>
-                    {item.price}
+                  <div className="text-left flex-1">
+                    <p className="text-[8px] mb-1 leading-none">{item.name}</p>
+                    <p className="text-[7px] font-bold">{owned ? 'OWNED' : `${item.price}C`}</p>
                   </div>
                 </button>
-              ))}
-            </div>
-          </section>
-        </div>
+              );
+            })}
+          </div>
+        </section>
+
       </div>
     </div>
   );

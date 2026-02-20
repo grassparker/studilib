@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { User, Goal } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 
-
 interface OverviewProps {
   user: User;
 }
@@ -13,171 +12,142 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
   const [friends, setFriends] = useState<any[]>([]);
   const [showArchived, setShowArchived] = useState(false);
 
-  // 1. Fetch Goals
+  // Data Fetching Logic (Stays the same)
   useEffect(() => {
     const fetchGoals = async () => {
-      const { data, error } = await supabase
-        .from('goals')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
+      const { data } = await supabase.from('goals').select('*').order('created_at', { ascending: false });
       if (data) setGoals(data);
-      if (error) console.error("Goal fetch error:", error);
     };
     fetchGoals();
   }, [user.id]);
 
-  // 2. Goal Action Handlers
-  const addGoal = async () => {
-    if (!newGoalTitle.trim()) return;
-    const { data, error } = await supabase
-      .from('goals')
-      .insert([{ title: newGoalTitle, user_id: user.id, category: 'daily' }])
-      .select();
-
-    if (data) {
-      setGoals([data[0], ...goals]);
-      setNewGoalTitle('');
-    }
-    if (error) console.error("Add goal error:", error);
-  };
-
-  const toggleGoal = async (id: string, completed: boolean) => {
-    const { error } = await supabase
-      .from('goals')
-      .update({ completed: !completed })
-      .eq('id', id);
-
-    if (!error) {
-      setGoals(prev => prev.map(g => g.id === id ? { ...g, completed: !completed } : g));
-    }
-  };
-
-  const deleteGoal = async (id: string) => {
-    const { error } = await supabase.from('goals').delete().eq('id', id);
-    if (!error) setGoals(prev => prev.filter(g => g.id !== id));
-  };
-
-  // Memoized Filters
-  const activeGoals = goals.filter(g => !g.completed);
-  const archivedGoals = goals.filter(g => g.completed);
-
-  // 3. Fetch Friends
   useEffect(() => {
     const fetchFriends = async () => {
-      const { data: friendshipData } = await supabase
-        .from('friendships')
-        .select('friend_id')
-        .eq('user_id', user.id);
-
+      const { data: friendshipData } = await supabase.from('friendships').select('friend_id').eq('user_id', user.id);
       if (friendshipData && friendshipData.length > 0) {
         const friendIds = friendshipData.map(f => f.friend_id);
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('*')
-          .in('id', friendIds);
-
+        const { data: profiles } = await supabase.from('profiles').select('*').in('id', friendIds);
         if (profiles) setFriends(profiles);
-      } else {
-        setFriends([]);
       }
     };
     fetchFriends();
   }, [user.id]);
 
-  // 4. Presence Logic
-  useEffect(() => {
-    const channel = supabase.channel('online-users');
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        console.log('Online state updated:', channel.presenceState());
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            user_id: user.id,
-            username: user.username,
-            online_at: new Date().toISOString(),
-          });
-        }
-      });
-    return () => { channel.unsubscribe(); };
-  }, [user.id]);
+  const addGoal = async () => {
+    if (!newGoalTitle.trim()) return;
+    const { data } = await supabase.from('goals').insert([{ title: newGoalTitle, user_id: user.id, category: 'daily' }]).select();
+    if (data) { setGoals([data[0], ...goals]); setNewGoalTitle(''); }
+  };
+
+  const toggleGoal = async (id: string, completed: boolean) => {
+    await supabase.from('goals').update({ completed: !completed }).eq('id', id);
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, completed: !completed } : g));
+  };
+
+  const deleteGoal = async (id: string) => {
+    await supabase.from('goals').delete().eq('id', id);
+    setGoals(prev => prev.filter(g => g.id !== id));
+  };
+
+  const activeGoals = goals.filter(g => !g.completed);
+  const archivedGoals = goals.filter(g => g.completed);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-4">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-4 pixel-font uppercase text-slate-900" style={{ imageRendering: 'pixelated' }}>
+      
+      {/* GLOBAL PIXEL CSS */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        .pixel-font { font-family: 'Press Start 2P', cursive; }
+        .pixel-box {
+          border: 4px solid black;
+          box-shadow: 4px 4px 0 0 rgba(0,0,0,0.2);
+          background: white;
+          padding: 1.5rem;
+        }
+        .pixel-banner {
+          border: 4px solid black;
+          background: #ffaa00;
+          color: black;
+          box-shadow: 6px 6px 0 0 #cc8800;
+        }
+        .pixel-input {
+          border: 4px solid black;
+          padding: 8px;
+          outline: none;
+          font-size: 10px;
+        }
+        .pixel-btn-amber {
+          background: #ffaa00;
+          border: 4px solid black;
+          box-shadow: inset -4px -4px 0 0 #cc8800;
+          padding: 8px 12px;
+          font-size: 10px;
+          cursor: pointer;
+        }
+        .pixel-btn-amber:active { box-shadow: inset 4px 4px 0 0 #cc8800; }
+      `}</style>
 
-      {/* LEFT COLUMN: Welcome & Goals */}
+      {/* LEFT COLUMN */}
       <div className="lg:col-span-2 space-y-8">
-        <section className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
-          <h1 className="text-3xl font-bold font-quicksand mb-2">Welcome back, {user.username}! ✨</h1>
-          <p className="opacity-90">Ready to crush your targets today?</p>
-          <i className="fas fa-book-open absolute -bottom-4 -right-4 text-white/10 text-9xl"></i>
+        {/* Welcome Banner */}
+        <section className="pixel-banner p-8 relative overflow-hidden">
+          <h1 className="text-sm mb-4">HELLO, {user.username}!</h1>
+          <p className="text-[10px] leading-loose">MISSION: CRUSH_TARGETS.EXE</p>
+          <div className="absolute right-4 top-4 opacity-20 text-4xl">👾</div>
         </section>
       
-      {/* Goals */}
-        <section className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-slate-800 font-quicksand">Daily Focus Goals</h3>
-            <div className="flex gap-2">
+        {/* Goals Section */}
+        <section className="pixel-box">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+            <h3 className="text-xs font-bold tracking-tighter underline">ACTIVE_QUESTS</h3>
+            <div className="flex gap-2 w-full md:w-auto">
               <input 
                 value={newGoalTitle}
                 onChange={(e) => setNewGoalTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addGoal()}
-                placeholder="New goal..."
-                className="text-sm border border-slate-200 rounded-xl px-3 py-1 outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="INPUT QUEST..."
+                className="pixel-input flex-1"
               />
-              <button onClick={addGoal} className="bg-amber-500 text-white px-4 py-1 rounded-xl font-bold text-sm hover:bg-amber-600 transition-colors">
-                + Add
-              </button>
+              <button onClick={addGoal} className="pixel-btn-amber">ADD</button>
             </div>
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-4">
             {activeGoals.length > 0 ? activeGoals.map((goal) => (
-              <div key={goal.id} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-slate-50 group border border-transparent hover:border-slate-100 transition-all">
+              <div key={goal.id} className="flex items-center gap-4 p-4 border-2 border-slate-100 hover:border-black transition-all group">
                 <button 
                   onClick={() => toggleGoal(goal.id, goal.completed)}
-                  className="w-6 h-6 rounded-lg border-2 border-slate-200 flex items-center justify-center transition-all hover:border-amber-500"
+                  className="w-8 h-8 border-4 border-black bg-white flex items-center justify-center hover:bg-slate-100"
                 >
-                  <i className="fas fa-check text-[10px] text-amber-500 opacity-0 group-hover:opacity-30"></i>
+                  <i className="fas fa-check text-green-600 opacity-0 group-hover:opacity-100 text-xs"></i>
                 </button>
-                <span className="flex-1 font-medium text-slate-700">{goal.title}</span>
-                <button onClick={() => deleteGoal(goal.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-all">
-                  <i className="fas fa-trash-alt text-sm"></i>
+                <span className="flex-1 text-[10px]">{goal.title}</span>
+                <button onClick={() => deleteGoal(goal.id)} className="text-slate-300 hover:text-red-600">
+                  [X]
                 </button>
               </div>
             )) : (
-              <div className="text-center py-6">
-                <p className="text-slate-400 text-sm italic">No active goals. Add one above! 🚀</p>
-              </div>
+              <p className="text-[10px] text-center text-slate-400 py-4 italic">NO QUESTS LOGGED...</p>
             )}
           </div>
 
+          {/* Archived Quests */}
           {archivedGoals.length > 0 && (
-            <div className="mt-8 pt-4 border-t border-slate-50">
+            <div className="mt-8 pt-6 border-t-4 border-black border-dotted">
               <button 
                 onClick={() => setShowArchived(!showArchived)}
-                className="text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-amber-500 transition-colors flex items-center gap-2"
+                className="text-[8px] hover:text-amber-600 flex items-center gap-2"
               >
-                {showArchived ? 'Hide' : 'View'} Finished ({archivedGoals.length})
-                <i className={`fas fa-chevron-${showArchived ? 'up' : 'down'}`}></i>
+                {showArchived ? '[-] HIDE' : '[+] VIEW'} COMPLETED ({archivedGoals.length})
               </button>
 
               {showArchived && (
-                <div className="mt-4 space-y-2">
+                <div className="mt-4 space-y-2 opacity-60">
                   {archivedGoals.map((goal) => (
-                    <div key={goal.id} className="flex items-center gap-4 p-3 rounded-2xl bg-slate-50/50 group opacity-60">
-                      <button
-                        onClick={() => toggleGoal(goal.id, goal.completed)}
-                        className="w-6 h-6 rounded-lg bg-amber-500 border-amber-500 text-white flex items-center justify-center"
-                      >
-                        <i className="fas fa-check text-[10px]"></i>
-                      </button>
-                      <span className="flex-1 text-sm text-slate-500 line-through">{goal.title}</span>
-                      <button onClick={() => deleteGoal(goal.id)} className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500">
-                        <i className="fas fa-trash-alt text-sm"></i>
-                      </button>
+                    <div key={goal.id} className="flex items-center gap-4 p-2 bg-slate-50 border-l-4 border-black">
+                       <span className="text-[8px] line-through flex-1">{goal.title}</span>
+                       <button onClick={() => deleteGoal(goal.id)} className="text-[8px]">[DEL]</button>
                     </div>
                   ))}
                 </div>
@@ -187,40 +157,41 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
         </section>
       </div>
 
-      {/* RIGHT COLUMN: Study Group & Notice */}
+      {/* RIGHT COLUMN */}
       <div className="space-y-8">
-        <section className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h3 className="text-xl font-bold text-slate-800 font-quicksand mb-6">Study Group</h3>
-          <div className="space-y-4">
+        {/* Study Group */}
+        <section className="pixel-box">
+          <h3 className="text-xs mb-6 underline">PARTY_MEMBERS</h3>
+          <div className="space-y-6">
             {friends.length > 0 ? friends.map((friend) => (
-              <div key={friend.id} className="flex items-center gap-3 p-2 rounded-2xl hover:bg-amber-50 transition-colors cursor-pointer">
-                <div className="relative">
+              <div key={friend.id} className="flex items-center gap-4 group cursor-pointer">
+                <div className="w-12 h-12 border-4 border-black bg-slate-100 overflow-hidden">
                   <img 
                     src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} 
                     alt={friend.username} 
-                    className="w-12 h-12 rounded-xl bg-slate-100" 
+                    className="w-full h-full" 
                   />
-                  <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-slate-800 text-sm">{friend.username}</p>
-                  <p className="text-xs text-green-600 font-medium">Online</p>
+                  <p className="text-[10px] font-bold">{friend.username}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-2 h-2 bg-green-500 border border-black"></div>
+                    <p className="text-[8px] text-green-600">ONLINE</p>
+                  </div>
                 </div>
               </div>
             )) : (
-              <p className="text-slate-400 text-sm text-center py-4">No study buddies yet!</p>
+              <p className="text-[8px] text-slate-400 text-center">NO ALLIES FOUND.</p>
             )}
           </div>
         </section>
 
-        <section className="bg-slate-800 p-6 rounded-3xl text-white shadow-lg relative overflow-hidden">
-          <h3 className="text-lg font-bold mb-4 font-quicksand flex items-center gap-2 relative z-10">
-            <i className="fas fa-bullhorn text-amber-400"></i> Group Notice
-          </h3>
-          <div className="bg-white/10 p-4 rounded-2xl border border-white/10 relative z-10">
-            <p className="text-sm italic text-slate-300">"Consistency is key. See you at the 6 PM session!"</p>
+        {/* Group Notice */}
+        <section className="bg-black text-white border-4 border-[#555] p-6 shadow-[8px_8px_0_0_#222]">
+          <h3 className="text-[10px] mb-4 text-amber-400">!! SYSTEM_MSG</h3>
+          <div className="border-l-4 border-amber-400 pl-4 py-2">
+            <p className="text-[9px] leading-relaxed italic">"CONSISTENCY IS POWER. 6PM BOSS RAID INITIATED."</p>
           </div>
-          <i className="fas fa-quote-right absolute top-2 right-2 text-white/5 text-6xl"></i>
         </section>
       </div>
     </div>
