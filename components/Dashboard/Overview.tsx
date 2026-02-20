@@ -67,7 +67,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
         }
         .pixel-banner {
           border: 4px solid black;
-          background: #FBBF24;
+          background: #ffaa00;
           color: black;
           box-shadow: 6px 6px 0 0 rgba(0,0,0,1);
         }
@@ -79,7 +79,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
           background: white;
         }
         .pixel-btn-amber {
-          background: #FBBF24;
+          background: #ffaa00;
           border: 4px solid black;
           box-shadow: 4px 4px 0 0 black;
           padding: 8px 16px;
