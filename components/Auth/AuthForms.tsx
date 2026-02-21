@@ -30,6 +30,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
           options: {
             data: {
               username: username,
+              avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`,
             },
           },
         });
