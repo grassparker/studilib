@@ -23,33 +23,72 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
         const fetchLiveStats = async () => {
             if (!user?.id || !isOpen) return;
 
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayISO = today.toISOString();
+            const todayDate = new Date();
+            todayDate.setHours(0, 0, 0, 0);
+            const todayISO = todayDate.toISOString();
 
-            // 1. Fetch Today's Sessions
+            // 1. FETCH TODAY'S SESSIONS
             const { data: sessionData } = await supabase
                 .from('study_sessions')
-                .select('*')
+                .select('time')
                 .eq('user_id', user.id)
                 .gte('created_at', todayISO);
 
+            let totalMinsToday = 0;
             if (sessionData) {
                 setSessionCount(sessionData.length);
-                const total = sessionData.reduce((acc, curr) => acc + (Number(curr.time) || 0), 0);
-                setTotalFocusMinutes(total);
+                totalMinsToday = sessionData.reduce((acc, curr) => acc + (Number(curr.time) || 0), 0);
+                setTotalFocusMinutes(totalMinsToday);
             }
 
-            // 2. Fetch Profile Data (Only set inputs if we are opening the modal)
+            // 2. FETCH PROFILE & HANDLE STREAK LOGIC
             const { data: profileData } = await supabase
                 .from('profiles')
-                .select('weekly_streak, daily_goal')
+                .select('weekly_streak, daily_goal, last_pomo_at')
                 .eq('id', user.id)
                 .single();
 
             if (profileData) {
                 setDailyGoal(profileData.daily_goal || 100);
-                setStreak(profileData.weekly_streak || 0);
+                
+                // --- STREAK CALCULATION ---
+                const now = new Date();
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                const oneDayMs = 24 * 60 * 60 * 1000;
+                
+                let lastPomoDate = 0;
+                if (profileData.last_pomo_at) {
+                    const lp = new Date(profileData.last_pomo_at);
+                    lastPomoDate = new Date(lp.getFullYear(), lp.getMonth(), lp.getDate()).getTime();
+                }
+
+                const diff = today - lastPomoDate;
+                let updatedStreak = profileData.weekly_streak || 0;
+
+                // If user finished a session today AND hasn't updated streak today
+                if (totalMinsToday > 0 && diff !== 0) {
+                    if (diff === oneDayMs) {
+                        updatedStreak += 1; // Studied yesterday? Streak continues!
+                    } else {
+                        updatedStreak = 1; // Missed a day? Reset to 1.
+                    }
+
+                    // Update database immediately
+                    await supabase
+                        .from('profiles')
+                        .update({ 
+                            weekly_streak: updatedStreak, 
+                            last_pomo_at: now.toISOString() 
+                        })
+                        .eq('id', user.id);
+                } 
+                // If they haven't studied today but it's been more than 1 day since last session...
+                else if (diff > oneDayMs) {
+                    updatedStreak = 0; // Streak died.
+                    await supabase.from('profiles').update({ weekly_streak: 0 }).eq('id', user.id);
+                }
+
+                setStreak(updatedStreak);
             }
         };
 
@@ -57,11 +96,11 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
             fetchLiveStats();
             setNewUsername(user.username || '');
         }
-    }, [isOpen, user.id]); // Removed 'user' object to prevent constant resets
+    }, [isOpen, user.id]);
 
-    // This ensures the progress bar updates INSTANTLY as you type the new goal
     const rawPercent = Math.round((totalFocusMinutes / (dailyGoal || 1)) * 100);
     const barWidth = Math.min(rawPercent, 100);
+    const passwordsMatch = newPassword && newPassword === confirmPassword;
 
     const handleSaveProfile = async () => {
         if (!newUsername.trim()) return;
@@ -75,74 +114,35 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
 
         const { error } = await supabase
             .from('profiles')
-            .update({ 
-                username: newUsername, 
-                daily_goal: dailyGoal 
-            })
+            .update({ username: newUsername, daily_goal: dailyGoal })
             .eq('id', user.id);
 
         if (!error) {
-            // Update the parent state so the whole app knows the new goal
             onProfileUpdate({ username: newUsername, daily_goal: dailyGoal }); 
-        
             setNewPassword('');
             setConfirmPassword('');
             alert('SYSTEM_RECONFIGURED_SUCCESSFULLY');
-        } else {
-            alert("ERR: DATABASE_REJECTED_CHANGES");
         }
     };
 
     if (!isOpen) return null;
 
-    const passwordsMatch = newPassword && newPassword === confirmPassword;
-
     return (
         <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-            
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-                .profile-scope { image-rendering: pixelated; }
                 .profile-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
-                
-                .terminal-modal {
-                    background: #1a1a1a;
-                    border: 4px solid #333;
-                    box-shadow: 0 0 0 4px #000, 15px 15px 0 0 rgba(0,0,0,0.5);
-                    color: #00ff00;
-                }
-
+                .terminal-modal { background: #1a1a1a; border: 4px solid #333; color: #00ff00; }
                 .stat-box { border: 2px solid #333; background: #111; padding: 15px; }
-
                 .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 20px; padding: 2px; }
-                .xp-bar-fill { background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.5s ease-out; }
-
-                .pixel-input {
-                    background: #000;
-                    border: 2px solid #333;
-                    color: #ffaa00;
-                    padding: 10px;
-                    font-size: 8px;
-                    width: 100%;
-                    outline: none;
-                }
-                .pixel-input:focus { border-color: #ffaa00; }
-
-                .pixel-btn-save {
-                    background: #222;
-                    border: 2px solid #00ff00;
-                    color: #00ff00;
-                    padding: 15px;
-                    cursor: pointer;
-                    font-size: 10px;
-                    width: 100%;
-                }
+                .xp-bar-fill { background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.5s; }
+                .pixel-input { background: #000; border: 2px solid #333; color: #ffaa00; padding: 10px; font-size: 8px; width: 100%; outline: none; }
+                .pixel-btn-save { background: #222; border: 2px solid #00ff00; color: #00ff00; padding: 15px; cursor: pointer; width: 100%; }
                 .pixel-btn-save:hover { background: #00ff00; color: #000; }
             `}</style>
 
             <div className="terminal-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto p-10 relative">
                 <button onClick={onClose} className="absolute top-4 right-4 text-red-500">[X]</button>
-
                 <h1 className="text-[12px] mb-10 text-[#ffaa00] border-b-2 border-[#333] pb-4">
                     USER_PROFILE // ID_{user.id.substring(0,8)}
                 </h1>
@@ -176,18 +176,10 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                     </div>
 
                     <div className="stat-box border-red-900/50">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-[8px] text-red-500">! SECURITY</h2>
-                        </div>
+                        <h2 className="text-[8px] text-red-500 mb-6">! SECURITY</h2>
                         <div className="space-y-4">
-                            <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">NEW_PASSWORD</label>
-                                <input type="password" placeholder="********" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pixel-input" />
-                            </div>
-                            <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">CONFIRM_PASS</label>
-                                <input type="password" placeholder="********" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`pixel-input ${confirmPassword && !passwordsMatch ? 'border-red-500' : ''}`} />
-                            </div>
+                            <input type="password" placeholder="NEW_PASS" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pixel-input" />
+                            <input type="password" placeholder="CONFIRM_PASS" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`pixel-input ${confirmPassword && !passwordsMatch ? 'border-red-500' : ''}`} />
                         </div>
                     </div>
                 </div>
