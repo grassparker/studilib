@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AuthForms } from './components/Auth/AuthForms';
 import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Layout/Sidebar';
@@ -9,11 +10,11 @@ import ProfileModal from './components/Profile/ProfileModal';
 import { supabase } from './components/Auth/supabaseClient';
 
 const App: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [language, setLanguage] = useState<'EN' | 'ZH'>('EN'); // For the Chinese translation
 
   // --- 1. CORE FUNCTIONS ---
 
@@ -73,6 +74,11 @@ const App: React.FC = () => {
     await supabase.auth.signOut();
   };
 
+  const handleLanguageChange = () => {
+    const newLang = i18n.language === 'EN' ? 'ZH' : 'EN';
+    i18n.changeLanguage(newLang);
+  };
+
   // --- 3. PIXEL THEME RENDER ---
 
   if (isLoading) {
@@ -92,7 +98,7 @@ const App: React.FC = () => {
             <i className="fas fa-spinner fa-spin"></i>
           </div>
           <p className="pixel-font text-[10px] tracking-widest text-black">
-            LOADING_OS...
+            {t('loading_os')}
           </p>
         </div>
       </div>
@@ -154,14 +160,14 @@ const App: React.FC = () => {
 
           {/* SYSTEM STATUS BAR - Optional but very RPG-like */}
           <footer className="h-8 bg-black text-white flex items-center px-4 justify-between">
-            <span className="text-[6px] uppercase tracking-[0.2em]">SYSTEM_STABLE // NO_ERRORS</span>
+            <span className="text-[6px] uppercase tracking-[0.2em]">{t('system_stable')}</span>
             <div className="flex gap-4">
-               <span className="text-[6px] uppercase">REGION: ASIA_NORTH</span>
+               <span className="text-[6px] uppercase">{t('region')}</span>
                <button 
-                onClick={() => setLanguage(language === 'EN' ? 'ZH' : 'EN')}
+                onClick={handleLanguageChange}
                 className="text-[6px] text-amber-400 underline"
                >
-                 LANG: {language}
+                 {t('language')}: {i18n.language}
                </button>
             </div>
           </footer>

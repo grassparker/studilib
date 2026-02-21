@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from './supabaseClient';
 
 interface AuthFormsProps {
@@ -6,6 +7,7 @@ interface AuthFormsProps {
 }
 
 export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,11 +37,11 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
           },
         });
         if (error) throw error;
-        alert("ACCESS_GRANTED: CHECK_EMAIL_CONFIRMATION!");
+        alert(t('access_granted'));
       }
       onLogin(); 
     } catch (error: any) {
-      alert(error.message || "SYSTEM_ERROR: TRY_AGAIN");
+      alert(error.message || t('system_error'));
     } finally {
       setLoading(false);
     }
@@ -103,7 +105,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
             <i className="fas fa-terminal text-black text-2xl"></i>
           </div>
           <h1 className="text-xl tracking-tighter mb-2">STUDILIB</h1>
-          <p className="text-[8px] text-amber-400">Welcome to StudiLib</p>
+          <p className="text-[8px] text-amber-400">{t('welcome_studilib')}</p>
         </div>
 
         <div className="p-8">
@@ -113,49 +115,49 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
               onClick={() => setIsLogin(true)}
               className={`flex-1 tab-btn ${isLogin ? 'active' : 'opacity-40'}`}
             >
-              [ LOGIN ]
+              [ {t('login')} ]
             </button>
             <button
               onClick={() => setIsLogin(false)}
               className={`flex-1 tab-btn ${!isLogin ? 'active' : 'opacity-40'}`}
             >
-              [ SIGN_UP ]
+              [ {t('signup')} ]
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && (
               <div>
-                <label className="block text-[8px] mb-2">USER_ID</label>
+                <label className="block text-[8px] mb-2">{t('user_id')}</label>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pixel-input"
-                  placeholder="ID_IDENTIFIER..."
+                  placeholder={t('id_identifier')}
                   required
                 />
               </div>
             )}
             <div>
-              <label className="block text-[8px] mb-2">EMAIL_ADDRESS</label>
+              <label className="block text-[8px] mb-2">{t('email_address')}</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pixel-input"
-                placeholder="USER@DOMAIN.COM"
+                placeholder={t('user_domain')}
                 required
               />
             </div>
             <div>
-              <label className="block text-[8px] mb-2">PASSWORD</label>
+              <label className="block text-[8px] mb-2">{t('password')}</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pixel-input"
-                placeholder="********"
+                placeholder={t('password_placeholder')}
                 required
               />
             </div>
@@ -165,12 +167,12 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
               disabled={loading}
               className="w-full pixel-btn disabled:opacity-50"
             >
-              {loading ? 'PROCESSING...' : (isLogin ? 'INITIATE_SESSION' : 'REGISTER_USER')}
+              {loading ? t('processing') : (isLogin ? t('initiate_session') : t('register_user'))}
             </button>
           </form>
 
           <p className="text-[6px] text-center mt-8 text-gray-400 tracking-widest">
-            SECURE_ENCRYPTION_ACTIVE // V.1.0
+            {t('secure_encryption')}
           </p>
         </div>
       </div>

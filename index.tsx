@@ -1,12 +1,14 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import './i18n/config'; // Add this at the top, before React renders
 import App from './App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
+
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
