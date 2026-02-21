@@ -1,4 +1,5 @@
-import React, { useState } from 'react'; // Added useState
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FocusRoom } from './Study/FocusRoom';
 import { TinyHomeView } from './Home/TinyHomeView';
 import { Overview } from './Dashboard/Overview';
@@ -15,6 +16,7 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ activeTab, user, updateCoins }) => {
+  const { t } = useTranslation();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   return (
@@ -35,7 +37,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ activeTab, user, updateCoi
               return (
                 <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                   <i className="fas fa-tools text-4xl mb-4"></i>
-                  <p className="font-medium">Tab "{activeTab}" is under construction.</p>
+                  <p className="font-medium">Tab "{activeTab}" {t('under_construction')}</p>
                 </div>
               );
           }

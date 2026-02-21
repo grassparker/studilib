@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TimerMode } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 
@@ -13,6 +14,7 @@ const triggerPopup = (title: string, body: string) => {
 };
 
 export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
+  const { t } = useTranslation();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [mode, setMode] = useState<TimerMode>(TimerMode.POMODORO);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -112,11 +114,11 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
     setIsActive(false);
     setTargetTimestamp(null);
     
-    triggerPopup("QUEST_COMPLETE", "REWARDS_COLLECTED");
+    triggerPopup(t('quest_complete'), t('rewards_collected'));
 
     const alertMessage = mode === TimerMode.POMODORO 
-      ? "QUEST COMPLETE! Time for a well-earned break. ☕" 
-      : "BREAK OVER! Ready for the next quest? ⚔️";
+      ? t('quest_time')
+      : t('break_over');
     
     if (currentUser) {
       await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', currentUser.id);
@@ -163,6 +165,19 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
 
   const totalTime = mode === TimerMode.POMODORO ? 25 * 60 : mode === TimerMode.SHORT_BREAK ? 5 * 60 : 15 * 60;
   const progressPercentage = ((totalTime - timeLeft) / totalTime) * 100;
+
+  const getModeLabel = (timerMode: TimerMode) => {
+    switch(timerMode) {
+      case TimerMode.POMODORO:
+        return t('pomodoro');
+      case TimerMode.SHORT_BREAK:
+        return t('short_break');
+      case TimerMode.LONG_BREAK:
+        return t('long_break');
+      default:
+        return timerMode;
+    }
+  };
 
   return (
     <div className="game-ui-scope flex flex-col lg:flex-row gap-8 min-h-full p-4 lg:p-8">
@@ -247,7 +262,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
 
       {/* TIMER SECTION */}
       <div className="flex-1 menu-box flex flex-col items-center">
-        <span className="ui-label self-start">QUEST_TIMER</span>
+        <span className="ui-label self-start">{t('quest_timer')}</span>
         
         <div className="progress-container mb-8">
           <div className="progress-fill" style={{ width: `${progressPercentage}%` }} />
@@ -261,7 +276,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
               className={`mode-btn ${mode === m ? 'active' : ''}`}
               disabled={isActive}
             >
-              {m.replace('_', ' ')}
+              {getModeLabel(m)}
             </button>
           ))}
         </div>
@@ -272,7 +287,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
 
         <div className="flex gap-6 mt-4">
           <button onClick={toggleTimer} className="btn-action">
-            {isActive ? 'HALT' : 'BEGIN'}
+            {isActive ? t('halt') : t('begin')}
           </button>
           <button onClick={() => resetTimer(mode)} className="btn-reset">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="square">
@@ -286,22 +301,22 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
       {/* NOTES SECTION */}
       <div className="w-full lg:w-[450px] menu-box flex flex-col shadow-[8px_8px_0_0_#FBBF24]">
         <div className="flex justify-between items-center mb-6">
-          <span className="ui-label">QUEST_LOG</span>
+          <span className="ui-label">{t('quest_log')}</span>
           <button onClick={downloadNotes} className="text-[8px] hover:text-amber-600 transition-colors">
-            [EXPORT_DATA]
+            [{t('export_data')}]
           </button>
         </div>
 
         <textarea
           value={notes}
           onChange={(e) => handleNoteChange(e.target.value)}
-          placeholder="WAITING_FOR_INPUT..."
+          placeholder={t('waiting_for_input')}
           className="notes-input flex-1"
         />
         
         <div className="mt-6 flex justify-between text-[7px] text-gray-400 tracking-widest">
-          <p>CONNECTION: ENCRYPTED</p>
-          <p>BYTE_COUNT: {notes.length}</p>
+          <p>{t('connection_encrypted')}</p>
+          <p>{t('byte_count')}: {notes.length}</p>
         </div>
       </div>
     </div>

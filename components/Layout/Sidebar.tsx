@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface SidebarProps {
   activeTab: string;
@@ -7,14 +8,15 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogout }) => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', icon: 'fa-th-large', label: 'STATUS' },
-    { id: 'focus', icon: 'fa-stopwatch', label: 'QUEST' },
-    { id: 'tinyhome', icon: 'fa-home', label: 'HAVEN' },
-    { id: 'schedule', icon: 'fa-calendar-alt', label: 'LOG' },
-    { id: 'social', icon: 'fa-users', label: 'PARTY' }
+    { id: 'dashboard', icon: 'fa-th-large', label: t('status') },
+    { id: 'focus', icon: 'fa-stopwatch', label: t('quest') },
+    { id: 'tinyhome', icon: 'fa-home', label: t('haven') },
+    { id: 'schedule', icon: 'fa-calendar-alt', label: t('log') },
+    { id: 'social', icon: 'fa-users', label: t('party') }
   ];
 
   const handleTabClick = (id: string) => {
@@ -27,13 +29,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
       {/* 1. MOBILE BOTTOM BAR - Social Theme */}
       <div className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-white border-t-4 border-black z-[100] p-4 flex justify-between items-center">
         <h2 className="text-[10px] text-black font-pixel">
-          <i className="fas fa-terminal mr-2 text-amber-500"></i> STUDI_OS
+          <i className="fas fa-terminal mr-2 text-amber-500"></i> {t('studi_os')}
         </h2>
         <button 
           onClick={() => setIsOpen(!isOpen)}
           className="bg-white border-4 border-black text-black px-3 py-1 text-[8px] font-pixel shadow-[4px_4px_0_0_#000] active:translate-y-1 active:shadow-none"
         >
-          {isOpen ? 'CLOSE' : 'MENU'}
+          {isOpen ? t('close') : t('menu')}
         </button>
       </div>
 
@@ -110,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
             <span className="bg-black text-amber-400 p-2 border-2 border-black">
               <i className="fas fa-terminal"></i>
             </span>
-            STUDI_OS
+            {t('studi_os')}
           </h2>
         </div>
 
@@ -149,10 +151,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
             className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-white text-red-600 border-4 border-black font-pixel shadow-[4px_4px_0_0_black] active:translate-y-1 active:shadow-none transition-all hover:bg-red-50"
           >
             <i className="fas fa-power-off"></i>
-            <span className="text-[8px]">SHUT_DOWN</span>
+            <span className="text-[8px]">{t('shut_down')}</span>
           </button>
           <p className="text-[6px] text-slate-400 text-center font-pixel mt-6 uppercase tracking-widest">
-            V.1.0.0 - BETA 
+            {t('beta')}
           </p>
         </div>
       </aside>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 
 interface TopBarProps {
@@ -7,9 +8,10 @@ interface TopBarProps {
 }
 
 export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
+  const { t } = useTranslation();
   const displayName = user.username || 
                       user.email?.split('@')[0] || 
-                      "PLAYER_1";
+                      t('player_1');
 
   const avatarUrl = (user as any).avatar_url || 
                     user.avatar || 
@@ -55,7 +57,7 @@ export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
       <div className="flex items-center gap-4">
         <div className="coin-box">
           <i className="fas fa-coins text-[#ffd700] text-sm animate-pulse"></i>
-          <span className="text-[10px] tracking-widest text-[#ffd700]">GP_{displayCoins}</span>
+          <span className="text-[10px] tracking-widest text-[#ffd700]">{t('gp')}_{displayCoins}</span>
         </div>
       </div>
 
@@ -65,7 +67,7 @@ export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
           <p className="text-[10px] mb-2 tracking-tighter">{displayName}</p>
           <div className="flex items-center justify-end">
             <span className="status-dot"></span>
-            <p className="text-[8px] text-[#00ff00]">{user.status || 'READY'}</p>
+            <p className="text-[8px] text-[#00ff00]">{user.status || t('ready')}</p>
           </div>
         </div>
 

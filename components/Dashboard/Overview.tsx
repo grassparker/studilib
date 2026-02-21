@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Goal } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
+
 
 interface OverviewProps {
   user: User;
 }
 
 export const Overview: React.FC<OverviewProps> = ({ user }) => {
+  const { t } = useTranslation();
   const [newGoalTitle, setNewGoalTitle] = useState('');
   const [goals, setGoals] = useState<Goal[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
@@ -112,23 +115,23 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
       {/* LEFT COLUMN */}
       <div className="lg:col-span-2 space-y-8">
         <section className="pixel-banner p-6 md:p-8 relative overflow-hidden">
-          <h1 className="text-[10px] md:text-sm mb-4">HELLO, {user.username}!</h1>
-          <p className="text-[8px] md:text-[10px] leading-loose">MISSION: CRUSH_TARGETS.EXE</p>
+          <h1 className="text-[10px] md:text-sm mb-4">{t('hello')}, {user.username}!</h1>
+          <p className="text-[8px] md:text-[10px] leading-loose">{t('mission')}</p>
           <div className="absolute right-4 top-4 opacity-20 text-4xl hidden md:block">👾</div>
         </section>
       
         <section className="pixel-box">
           <div className="flex flex-col gap-6 mb-8">
-            <h3 className="text-[10px] font-bold underline">ACTIVE_QUESTS</h3>
+            <h3 className="text-[10px] font-bold underline">{t('active_quests')}</h3>
             <div className="flex flex-col sm:flex-row gap-4 w-full">
               <input 
                 value={newGoalTitle}
                 onChange={(e) => setNewGoalTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addGoal()}
-                placeholder="INPUT QUEST..."
+                placeholder={t('input_quest')}
                 className="pixel-input"
               />
-              <button onClick={addGoal} className="pixel-btn-amber">ADD_QUEST</button>
+              <button onClick={addGoal} className="pixel-btn-amber">{t('add_quest')}</button>
             </div>
           </div>
           
@@ -147,7 +150,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                 </button>
               </div>
             )) : (
-              <p className="text-[8px] text-center text-slate-400 py-8 border-4 border-dashed border-slate-200">NO ACTIVE QUESTS LOGGED...</p>
+              <p className="text-[8px] text-center text-slate-400 py-8 border-4 border-dashed border-slate-200">{t('no_active_quests')}</p>
             )}
           </div>
 
@@ -157,7 +160,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                 onClick={() => setShowArchived(!showArchived)}
                 className="text-[8px] hover:text-amber-600 flex items-center gap-2"
               >
-                {showArchived ? '[-] HIDE' : '[+] VIEW'} COMPLETED ({archivedGoals.length})
+                {showArchived ? `[-] ${t('hide_completed')}` : `[+] ${t('view_completed')}`} {t('completed')} ({archivedGoals.length})
               </button>
 
               {showArchived && (
@@ -165,7 +168,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                   {archivedGoals.map((goal) => (
                     <div key={goal.id} className="flex items-center gap-4 p-3 bg-slate-50 border-4 border-black">
                        <span className="text-[8px] line-through flex-1">{goal.title}</span>
-                       <button onClick={() => deleteGoal(goal.id)} className="text-[8px]">[DEL]</button>
+                       <button onClick={() => deleteGoal(goal.id)} className="text-[8px]">[{t('delete')}]</button>
                     </div>
                   ))}
                 </div>
@@ -178,7 +181,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
       {/* RIGHT COLUMN */}
       <div className="space-y-8">
         <section className="pixel-box">
-          <h3 className="text-[10px] mb-6 underline">PARTY_MEMBERS</h3>
+          <h3 className="text-[10px] mb-6 underline">{t('party_members')}</h3>
           <div className="space-y-6">
             {friends.length > 0 ? friends.map((friend) => {
               const isOnline = onlineUsers.includes(friend.id);
@@ -196,22 +199,22 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`w-2 h-2 border-2 border-black ${isOnline ? 'bg-green-500' : 'bg-slate-400'}`}></div>
                       <p className={`text-[6px] ${isOnline ? 'text-green-600' : 'text-slate-400'}`}>
-                        {isOnline ? 'ONLINE' : 'OFFLINE'}
+                        {isOnline ? t('online') : t('offline')}
                       </p>
                     </div>
                   </div>
                 </div>
               );
             }) : (
-              <p className="text-[8px] text-slate-400 text-center">NO ALLIES FOUND.</p>
+              <p className="text-[8px] text-slate-400 text-center">{t('no_allies')}</p>
             )}
           </div>
         </section>
 
         <section className="bg-black text-white border-4 border-black p-6 shadow-[8px_8px_0_0_#FBBF24]">
-          <h3 className="text-[10px] mb-4 text-amber-400 tracking-tighter">!! SYSTEM_MSG</h3>
+          <h3 className="text-[10px] mb-4 text-amber-400 tracking-tighter">!! {t('system_msg')}</h3>
           <div className="border-l-4 border-amber-400 pl-4 py-2">
-            <p className="text-[8px] leading-relaxed italic">"CONSISTENCY IS POWER. 6PM BOSS RAID INITIATED."</p>
+            <p className="text-[8px] leading-relaxed italic">"{t('consistency_quote')}"</p>
           </div>
         </section>
       </div>

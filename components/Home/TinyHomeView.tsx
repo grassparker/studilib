@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, HomeItem } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
+
 
 interface InteractiveItem extends HomeItem {
   level: number;
 }
 
 export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) => void }> = ({ user, updateCoins }) => {
+  const { t, i18n } = useTranslation();
   const [items, setItems] = useState<InteractiveItem[]>([]);
   const GRID_SIZE = 10;
 
@@ -19,12 +22,12 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
     loadHome();
   }, [user.id]);
 
-  const shopItems = [
-    { id: 'shelf', name: 'BOOKS', price: 20, icon: 'fa-list-ul', color: 'bg-[#8b4513]', action: 'SORT' },
-    { id: 'lamp', name: 'LAMP', price: 15, icon: 'fa-lightbulb', color: 'bg-[#ffd700]', action: 'GLOW' },
-    { id: 'plant', name: 'PLANT', price: 10, icon: 'fa-leaf', color: 'bg-[#228b22]', action: 'GROW' },
-    { id: 'coffee', name: 'BEANS', price: 40, icon: 'fa-mug-hot', color: 'bg-[#5c4033]', action: 'BREW' },
-  ];
+  const shopItems = useMemo(() => [
+  { id: 'shelf', name: t('books'), price: 20, icon: 'fa-list-ul', color: 'bg-[#8b4513]', action: t('sort') },
+  { id: 'lamp', name: t('lamp'), price: 15, icon: 'fa-lightbulb', color: 'bg-[#ffd700]', action: t('glow') },
+  { id: 'plant', name: t('plant'), price: 10, icon: 'fa-leaf', color: 'bg-[#228b22]', action: t('grow') },
+  { id: 'coffee', name: t('beans'), price: 40, icon: 'fa-mug-hot', color: 'bg-[#5c4033]', action: t('brew') },
+], [i18n.language, t]);
 
   const saveHomeToDB = async (updatedItems: InteractiveItem[]) => {
     await supabase.from('profiles').update({ home_layout: updatedItems }).eq('id', user.id);
@@ -67,7 +70,7 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
       setItems(updated);
       saveHomeToDB(updated);
     } else {
-      alert("ROOM_IS_FULL! NO_SPACE_LEFT.");
+      alert(t('room_full'));
     }
   };
 
@@ -118,7 +121,7 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
         {/* The Pixel Room (Social Theme) */}
         <div className="lg:col-span-2 pixel-border-social p-4 md:p-6 flex flex-col">
           <div className="flex items-center justify-between mb-4 text-black">
-            <h2 className="text-[10px] border-b-4 border-black pb-1">STUDY_ZONE.EXE</h2>
+            <h2 className="text-[10px] border-b-4 border-black pb-1">{t('study_zone')}</h2>
             <div className="bg-[#FBBF24] text-black px-3 py-1 border-4 border-black text-[10px] font-bold">
               $ {user.coins}
             </div>
@@ -149,7 +152,7 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
 
         {/* Pixel Shop (Social Theme) */}
         <section className="pixel-border-social p-6 h-fit lg:h-full lg:overflow-y-auto">
-          <h3 className="text-center mb-6 text-[10px] text-black underline tracking-widest">SHOP_LIST</h3>
+          <h3 className="text-center mb-6 text-[10px] text-black underline tracking-widest">{t('shop_list')}</h3>
           <div className="grid grid-cols-1 gap-4">
             {shopItems.map((item) => {
               const owned = items.find(i => i.name === item.name);
@@ -165,7 +168,7 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
                   </div>
                   <div className="text-left flex-1">
                     <p className="text-[8px] mb-1 leading-none">{item.name}</p>
-                    <p className="text-[7px] font-bold">{owned ? 'OWNED' : `${item.price}C`}</p>
+                    <p className="text-[7px] font-bold">{owned ? t('owned') : `${item.price}C`}</p>
                   </div>
                 </button>
               );

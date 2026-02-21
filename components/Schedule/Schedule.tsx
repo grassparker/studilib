@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../Auth/supabaseClient';
 import { User } from '../../types';
 
@@ -12,6 +13,7 @@ interface ScheduledTask {
 }
 
 export const Schedule: React.FC<{ user: User }> = ({ user }) => {
+  const { t } = useTranslation();
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -95,19 +97,19 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
 
     if (task.task_date === todayStr) {
       const hour = parseInt(task.start_time.split(':')[0]);
-      if (hour < 12) return 'MORNING_LOG';
-      if (hour < 17) return 'AFTERNOON_LOG';
-      return 'EVENING_LOG';
+      if (hour < 12) return t('morning_log');
+      if (hour < 17) return t('afternoon_log');
+      return t('evening_log');
     }
     
-    if (diffDays === 1) return 'TOMORROW_INTEL';
-    if (diffDays <= 7) return 'NEXT_7_DAYS';
-    return 'NEXT_MONTH_DATA';
+    if (diffDays === 1) return t('tomorrow_intel');
+    if (diffDays <= 7) return t('next_7_days');
+    return t('next_month_data');
   };
 
   const categoryOrder = [
-    'MORNING_LOG', 'AFTERNOON_LOG', 'EVENING_LOG', 
-    'TOMORROW_INTEL', 'NEXT_7_DAYS', 'NEXT_MONTH_DATA'
+    t('morning_log'), t('afternoon_log'), t('evening_log'), 
+    t('tomorrow_intel'), t('next_7_days'), t('next_month_data')
   ];
 
   // Logic to hide tasks when > 10 exist
@@ -184,11 +186,11 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
 
       {/* 1. SEARCH/INPUT PANEL */}
       <div className="party-panel">
-        <h3 className="section-header mb-6">LOG_NEW_ENTRY</h3>
+        <h3 className="section-header mb-6">{t('log_new_entry')}</h3>
         <div className="flex flex-col gap-4">
           <input 
             type="text" 
-            placeholder="INPUT_QUEST_TITLE..." 
+            placeholder={t('input_quest_title')}
             value={newTitle} 
             onChange={e => setNewTitle(e.target.value)} 
             className="party-input" 
@@ -197,7 +199,7 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
             <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="party-input flex-1" />
             <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className="party-input flex-1" />
             <button onClick={addTask} className="find-btn">
-              <i className="fas fa-plus"></i> EXECUTE
+              <i className="fas fa-plus"></i> {t('execute')}
             </button>
           </div>
         </div>
@@ -207,7 +209,7 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
       <div className="party-panel min-h-[400px]">
         {tasks.length === 0 ? (
           <div className="flex h-64 items-center justify-center">
-            <p className="text-[#94a3b8] text-[8px] tracking-widest">LOG_EMPTY... FIND_TASKS_ABOVE</p>
+            <p className="text-[#94a3b8] text-[8px] tracking-widest">{t('log_empty')}</p>
           </div>
         ) : (
           <div className="space-y-10">
@@ -236,8 +238,8 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
                                 onChange={e => setEditingTask({...editingTask, title: e.target.value})} 
                               />
                               <div className="flex gap-4 ml-auto">
-                                <button onClick={saveEdit} className="text-blue-600 text-[8px] underline">[SAVE]</button>
-                                <button onClick={() => setEditingTask(null)} className="text-red-500 text-[8px] underline">[EXIT]</button>
+                                <button onClick={saveEdit} className="text-blue-600 text-[8px] underline">[{t('save')}]</button>
+                                <button onClick={() => setEditingTask(null)} className="text-red-500 text-[8px] underline">[{t('exit')}]</button>
                               </div>
                             </div>
                           ) : (
@@ -247,8 +249,8 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
                                 <span className="text-[10px] text-black tracking-tight">{task.title}</span>
                               </div>
                               <div className="flex gap-4">
-                                <button onClick={() => setEditingTask(task)} className="text-amber-600 text-[8px]">EDIT</button>
-                                <button onClick={() => deleteTask(task.id)} className="text-red-500 text-[8px]">DROP</button>
+                                <button onClick={() => setEditingTask(task)} className="text-amber-600 text-[8px]">{t('edit')}</button>
+                                <button onClick={() => deleteTask(task.id)} className="text-red-500 text-[8px]">{t('drop')}</button>
                               </div>
                             </>
                           )}
@@ -270,9 +272,9 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
           className="w-full py-6 party-panel text-black text-[10px] hover:bg-slate-50 transition-colors flex items-center justify-center gap-4"
         >
           {showAll ? (
-            <> <i className="fas fa-chevron-up"></i> COLLAPSE_LOG </>
+            <> <i className="fas fa-chevron-up"></i> {t('collapse_log')} </>
           ) : (
-            <> <i className="fas fa-search"></i> FETCH_{tasks.length - 10}_MORE_ENTRIES </>
+            <> <i className="fas fa-search"></i> {t('fetch_more')}_{tasks.length - 10}_{t('more_entries')} </>
           )}
         </button>
       )}
