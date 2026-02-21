@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
 
   return (
     <>
-      {/* 1. MOBILE BOTTOM BAR - Social Theme */}
+      {/* 1. MOBILE BOTTOM BAR */}
       <div className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-white border-t-4 border-black z-[100] p-4 flex justify-between items-center">
         <h2 className="text-[10px] text-black font-pixel">
           <i className="fas fa-terminal mr-2 text-amber-500"></i> {t('studi_os')}
@@ -39,14 +39,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
         </button>
       </div>
 
-      {/* 2. SIDEBAR - Social/Party Aesthetic */}
+      {/* 2. SIDEBAR */}
       <aside className={`
         fixed inset-y-0 left-0 w-72 bg-[#fdfdfd] border-r-4 border-black flex flex-col transition-transform duration-300 transform
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
         md:relative md:translate-x-0 md:flex
-        z-[90] 
-        h-full md:h-screen
-        pb-16 md:pb-0
+        z-[90] h-full md:h-screen pb-16 md:pb-0
       `}>
         
         <style>{`
@@ -57,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
             border: 4px solid black;
             box-shadow: 8px 8px 0 0 rgba(0,0,0,0.1);
             background: white; 
-            padding: 30px 16px;
+            padding: 20px 16px;
           }
 
           .menu-option {
@@ -81,15 +79,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
           }
 
           .menu-option.active {
-            background: #FBBF24; /* Amber Selection */
+            background: #FBBF24;
             border: 4px solid black;
             box-shadow: 4px 4px 0 0 black;
             transform: translate(-2px, -2px);
-          }
-
-          .menu-option.active span {
-            color: black;
-            text-shadow: none;
           }
 
           .active-cursor-black {
@@ -118,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
 
         {/* SOCIAL MENU BOX */}
         <nav className="flex-1 m-4 menu-container-social overflow-y-auto">
-          <div className="space-y-6">
+          <div className="space-y-4">
             {menuItems.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -131,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
                   
                   <button
                     onClick={() => handleTabClick(item.id)}
-                    className={`menu-option ${isActive ? 'active' : 'opacity-40 hover:opacity-100 hover:translate-x-1'}`}
+                    className={`menu-option ${isActive ? 'active' : 'opacity-40 hover:opacity-100'}`}
                   >
                     <i className={`fas ${item.icon} menu-icon-big`}></i>
                     <span className="font-pixel text-[10px] text-black tracking-tighter">
@@ -144,8 +137,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
           </div>
         </nav>
 
-        {/* System Footer - Social Styled */}
-        <div className="p-6 bg-white border-t-4 border-black">
+        {/* System Footer - Consolidated for Visibility */}
+        <div className="p-4 bg-white border-t-4 border-black mt-auto">
           <button 
             onClick={onLogout}
             className="w-full flex items-center justify-center gap-4 px-4 py-3 bg-white text-red-600 border-4 border-black font-pixel shadow-[4px_4px_0_0_black] active:translate-y-1 active:shadow-none transition-all hover:bg-red-50"
@@ -153,13 +146,32 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
             <i className="fas fa-power-off"></i>
             <span className="text-[8px]">{t('shut_down')}</span>
           </button>
-          <p className="text-[6px] text-slate-400 text-center font-pixel mt-6 uppercase tracking-widest">
-            {t('beta')}
-          </p>
+          
+          <div className="mt-4 flex flex-col items-center gap-2">
+            {/* GITHUB LINK */}
+            <a 
+              href="https://github.com/grassparker/studilib" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[6px] text-black hover:text-amber-500 font-pixel transition-colors"
+            >
+              <i className="fab fa-github text-[10px]"></i>
+              <span>[ VIEW_SOURCE ]</span>
+            </a>
+
+            <div className="text-center">
+              <p className="text-[6px] text-slate-500 font-pixel uppercase tracking-widest">
+                {t('beta')}
+              </p>
+              <p className="text-[5px] text-slate-500 font-pixel uppercase tracking-tighter mt-1">
+                © 2026 CANDY. ALL RIGHTS RESERVED.
+              </p>
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* 3. OVERLAY */}
+      {/* OVERLAY */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] md:hidden"
@@ -169,3 +181,5 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
     </>
   );
 };
+
+export default Sidebar;
