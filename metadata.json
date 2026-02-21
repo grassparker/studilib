@@ -3,7 +3,5 @@
   "name": "StudiLib",
   "description": "A gamified group study platform with shared Pomodoro timers, voice calls, and a tiny home builder powered by focus coins.",
   "requestFramePermissions": [
-    "camera",
-    "microphone"
   ]
 }
