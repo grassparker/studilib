@@ -16,62 +16,56 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
     const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
     const [streak, setStreak] = useState(0);
     
-    // Password States
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-useEffect(() => {
+    useEffect(() => {
         const fetchLiveStats = async () => {
             if (!user?.id || !isOpen) return;
 
-            // 1. GET THE START OF "TODAY" (Midnight)
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const todayISO = today.toISOString();
 
-            // 2. FETCH ONLY TODAY'S SESSIONS (This fixes the "Reset after each day" issue)
+            // 1. Fetch Today's Sessions
             const { data: sessionData } = await supabase
                 .from('study_sessions')
                 .select('*')
                 .eq('user_id', user.id)
-                .gte('created_at', todayISO); // Filter for today only
+                .gte('created_at', todayISO);
 
             if (sessionData) {
                 setSessionCount(sessionData.length);
-                const total = sessionData.reduce((acc, curr) => acc + (Number(curr.time) || 25), 0);
+                const total = sessionData.reduce((acc, curr) => acc + (Number(curr.time) || 0), 0);
                 setTotalFocusMinutes(total);
             }
 
-            // 3. FETCH PROFILE DATA (Streak and Goal)
+            // 2. Fetch Profile Data (Only set inputs if we are opening the modal)
             const { data: profileData } = await supabase
                 .from('profiles')
-                .select('weekly_streak, daily_goal, last_pomo_at')
+                .select('weekly_streak, daily_goal')
                 .eq('id', user.id)
                 .single();
 
             if (profileData) {
                 setDailyGoal(profileData.daily_goal || 100);
-                
-                // STREAK LOGIC:
-                // If they did a pomo today, use the current streak.
-                // If they haven't done a pomo today, we'd usually calculate if they missed yesterday.
-                // For now, let's just display what's in the DB.
                 setStreak(profileData.weekly_streak || 0);
             }
         };
 
-        fetchLiveStats();
-        if (user) setNewUsername(user.username || '');
-    }, [user, isOpen]);
+        if (isOpen) {
+            fetchLiveStats();
+            setNewUsername(user.username || '');
+        }
+    }, [isOpen, user.id]); // Removed 'user' object to prevent constant resets
 
+    // This ensures the progress bar updates INSTANTLY as you type the new goal
     const rawPercent = Math.round((totalFocusMinutes / (dailyGoal || 1)) * 100);
     const barWidth = Math.min(rawPercent, 100);
-    const isOverachieving = rawPercent >= 100;
 
     const handleSaveProfile = async () => {
         if (!newUsername.trim()) return;
     
-        // Password Logic (Keep as is...)
         if (newPassword) {
             if (newPassword.length < 6) return alert("ERR: PASSWORD_TOO_SHORT");
             if (newPassword !== confirmPassword) return alert("ERR: PASSWORD_MISMATCH");
@@ -79,27 +73,21 @@ useEffect(() => {
             if (authError) return alert(`AUTH_ERR: ${authError.message}`);
         }
 
-        // THE FIX: Update the profile and handle the response
         const { error } = await supabase
             .from('profiles')
             .update({ 
                 username: newUsername, 
-                daily_goal: dailyGoal  // Sending the state value to DB
+                daily_goal: dailyGoal 
             })
             .eq('id', user.id);
 
         if (!error) {
-            // 1. Tell the parent component to update the main User object
+            // Update the parent state so the whole app knows the new goal
             onProfileUpdate({ username: newUsername, daily_goal: dailyGoal }); 
         
-            // 2. Clear password fields
             setNewPassword('');
             setConfirmPassword('');
-        
             alert('SYSTEM_RECONFIGURED_SUCCESSFULLY');
-        
-            // Optional: Close the modal automatically on success
-            // onClose(); 
         } else {
             alert("ERR: DATABASE_REJECTED_CHANGES");
         }
@@ -127,7 +115,7 @@ useEffect(() => {
                 .stat-box { border: 2px solid #333; background: #111; padding: 15px; }
 
                 .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 20px; padding: 2px; }
-                .xp-bar-fill { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+                .xp-bar-fill { background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.5s ease-out; }
 
                 .pixel-input {
                     background: #000;
@@ -159,7 +147,6 @@ useEffect(() => {
                     USER_PROFILE // ID_{user.id.substring(0,8)}
                 </h1>
 
-                {/* STATS */}
                 <div className="stat-box mb-8">
                     <h2 className="text-[8px] text-[#00ff00] mb-6 tracking-widest">{">"} PROGRESS_REPORT</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-center">
@@ -169,13 +156,11 @@ useEffect(() => {
                         <div><p className="text-[6px] text-slate-500 mb-2">QUOTA</p><p className="text-[10px] text-white">{rawPercent}%</p></div>
                     </div>
                     <div className="xp-bar-container">
-                        <div className="h-full transition-all duration-1000 xp-bar-fill" style={{ width: `${barWidth}%` }} />
+                        <div className="h-full xp-bar-fill" style={{ width: `${barWidth}%` }} />
                     </div>
                 </div>
 
-                {/* DUAL INPUT SECTION */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    {/* Identity */}
                     <div className="stat-box">
                         <h2 className="text-[8px] mb-6 text-slate-400"># IDENTITY</h2>
                         <div className="space-y-4">
@@ -184,38 +169,24 @@ useEffect(() => {
                                 <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="pixel-input" />
                             </div>
                             <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">DAILY_GOAL</label>
+                                <label className="text-[6px] block mb-2 text-slate-500">DAILY_GOAL (MINS)</label>
                                 <input type="number" value={dailyGoal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="pixel-input" />
                             </div>
                         </div>
                     </div>
 
-                    {/* Security with Double Pass */}
                     <div className="stat-box border-red-900/50">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-[8px] text-red-500">! SECURITY</h2>
-                            {passwordsMatch && <span className="text-[6px] text-[#00ff00]">MATCHED</span>}
                         </div>
                         <div className="space-y-4">
                             <div>
                                 <label className="text-[6px] block mb-2 text-slate-500">NEW_PASSWORD</label>
-                                <input 
-                                    type="password" 
-                                    placeholder="********" 
-                                    value={newPassword} 
-                                    onChange={(e) => setNewPassword(e.target.value)} 
-                                    className="pixel-input" 
-                                />
+                                <input type="password" placeholder="********" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pixel-input" />
                             </div>
                             <div>
                                 <label className="text-[6px] block mb-2 text-slate-500">CONFIRM_PASS</label>
-                                <input 
-                                    type="password" 
-                                    placeholder="********" 
-                                    value={confirmPassword} 
-                                    onChange={(e) => setConfirmPassword(e.target.value)} 
-                                    className={`pixel-input ${confirmPassword && !passwordsMatch ? 'border-red-500' : ''}`} 
-                                />
+                                <input type="password" placeholder="********" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`pixel-input ${confirmPassword && !passwordsMatch ? 'border-red-500' : ''}`} />
                             </div>
                         </div>
                     </div>
