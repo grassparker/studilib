@@ -20,21 +20,43 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    useEffect(() => {
+useEffect(() => {
         const fetchLiveStats = async () => {
             if (!user?.id || !isOpen) return;
 
-            const { data: sessionData } = await supabase.from('study_sessions').select('*').eq('user_id', user.id);
+            // 1. GET THE START OF "TODAY" (Midnight)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayISO = today.toISOString();
+
+            // 2. FETCH ONLY TODAY'S SESSIONS (This fixes the "Reset after each day" issue)
+            const { data: sessionData } = await supabase
+                .from('study_sessions')
+                .select('*')
+                .eq('user_id', user.id)
+                .gte('created_at', todayISO); // Filter for today only
+
             if (sessionData) {
                 setSessionCount(sessionData.length);
-                const total = sessionData.reduce((acc, curr) => acc + (Number(curr.duration) || 25), 0);
+                const total = sessionData.reduce((acc, curr) => acc + (Number(curr.time) || 25), 0);
                 setTotalFocusMinutes(total);
             }
 
-            const { data: profileData } = await supabase.from('profiles').select('weekly_streak, daily_goal').eq('id', user.id).single();
+            // 3. FETCH PROFILE DATA (Streak and Goal)
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('weekly_streak, daily_goal, last_pomo_at')
+                .eq('id', user.id)
+                .single();
+
             if (profileData) {
-                setStreak(profileData.weekly_streak || 0);
                 setDailyGoal(profileData.daily_goal || 100);
+                
+                // STREAK LOGIC:
+                // If they did a pomo today, use the current streak.
+                // If they haven't done a pomo today, we'd usually calculate if they missed yesterday.
+                // For now, let's just display what's in the DB.
+                setStreak(profileData.weekly_streak || 0);
             }
         };
 
@@ -48,22 +70,38 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
 
     const handleSaveProfile = async () => {
         if (!newUsername.trim()) return;
-        
-        // Check password match if user is trying to change it
+    
+        // Password Logic (Keep as is...)
         if (newPassword) {
-            if (newPassword.length < 6) return alert("ERR: PASSWORD_TOO_SHORT (MIN 6)");
+            if (newPassword.length < 6) return alert("ERR: PASSWORD_TOO_SHORT");
             if (newPassword !== confirmPassword) return alert("ERR: PASSWORD_MISMATCH");
-            
             const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
             if (authError) return alert(`AUTH_ERR: ${authError.message}`);
         }
 
-        const { error } = await supabase.from('profiles').update({ username: newUsername, daily_goal: dailyGoal }).eq('id', user.id);
+        // THE FIX: Update the profile and handle the response
+        const { error } = await supabase
+            .from('profiles')
+            .update({ 
+                username: newUsername, 
+                daily_goal: dailyGoal  // Sending the state value to DB
+            })
+            .eq('id', user.id);
+
         if (!error) {
+            // 1. Tell the parent component to update the main User object
             onProfileUpdate({ username: newUsername, daily_goal: dailyGoal }); 
+        
+            // 2. Clear password fields
             setNewPassword('');
             setConfirmPassword('');
+        
             alert('SYSTEM_RECONFIGURED_SUCCESSFULLY');
+        
+            // Optional: Close the modal automatically on success
+            // onClose(); 
+        } else {
+            alert("ERR: DATABASE_REJECTED_CHANGES");
         }
     };
 

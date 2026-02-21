@@ -31,23 +31,28 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
   };
 
   const buyItem = (shopItem: any) => {
+    // 1. Check if already owned or not enough coins
     if (items.some(i => i.name === shopItem.name)) return;
     if (user.coins < shopItem.price) return;
 
-    let newPos = { x: 0, y: 0 };
-    let found = false;
+    // 2. Generate a list of ALL available empty slots
+    const emptySlots: {x: number, y: number}[] = [];
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
-        if (!items.some(i => i.position.x === x && i.position.y === y)) {
-          newPos = { x, y };
-          found = true; break;
+        const isOccupied = items.some(i => i.position.x === x && i.position.y === y);
+        if (!isOccupied) {
+          emptySlots.push({ x, y });
         }
       }
-      if (found) break;
     }
 
-    if (found) {
+    // 3. If there are empty slots, pick one at random
+    if (emptySlots.length > 0) {
+      const randomIndex = Math.floor(Math.random() * emptySlots.length);
+      const newPos = emptySlots[randomIndex];
+
       updateCoins(-shopItem.price);
+      
       const newItem: InteractiveItem = {
         id: crypto.randomUUID(),
         name: shopItem.name,
@@ -57,9 +62,12 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
         position: newPos,
         level: 1 
       };
+
       const updated = [...items, newItem];
       setItems(updated);
       saveHomeToDB(updated);
+    } else {
+      alert("ROOM_IS_FULL! NO_SPACE_LEFT.");
     }
   };
 

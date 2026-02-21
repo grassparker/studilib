@@ -11,6 +11,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
   const [showArchived, setShowArchived] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]); // Track online IDs
 
   useEffect(() => {
     const fetchGoals = async () => {
@@ -19,9 +20,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
       if (data) setGoals(data);
     };
     fetchGoals();
-  }, [user.id]);
 
-  useEffect(() => {
     const fetchFriends = async () => {
       const { data: friendshipData } = await supabase.from('friendships').select('friend_id').eq('user_id', user.id);
       if (friendshipData && friendshipData.length > 0) {
@@ -31,6 +30,24 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
       }
     };
     fetchFriends();
+
+    // --- REAL-TIME PRESENCE ---
+    const channel = supabase.channel('online-players', {
+      config: { presence: { key: user.id } }
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        setOnlineUsers(Object.keys(state));
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => { channel.unsubscribe(); };
   }, [user.id]);
 
   const addGoal = async () => {
@@ -53,7 +70,6 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
   const archivedGoals = goals.filter(g => g.completed);
 
   return (
-    /* Changed min-h-screen and added pb-24 for mobile navigation clearance */
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-4 pb-32 md:pb-8 min-h-full pixel-font uppercase text-slate-900 overflow-y-auto lg:overflow-visible">
       
       <style>{`
@@ -77,6 +93,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
           outline: none;
           font-size: 8px;
           background: white;
+          width: 100%;
         }
         .pixel-btn-amber {
           background: #ffaa00;
@@ -87,6 +104,9 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
           cursor: pointer;
         }
         .pixel-btn-amber:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0 0 black; }
+        
+        /* Fixed the checkmark color */
+        .check-btn.completed { background: #ffaa00; }
       `}</style>
 
       {/* LEFT COLUMN */}
@@ -106,7 +126,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                 onChange={(e) => setNewGoalTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addGoal()}
                 placeholder="INPUT QUEST..."
-                className="pixel-input flex-1"
+                className="pixel-input"
               />
               <button onClick={addGoal} className="pixel-btn-amber">ADD_QUEST</button>
             </div>
@@ -119,10 +139,10 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                   onClick={() => toggleGoal(goal.id, goal.completed)}
                   className="w-10 h-10 border-4 border-black bg-white flex items-center justify-center active:bg-amber-400 shrink-0"
                 >
-                  <i className="fas fa-check text-black text-xs"></i>
+                  <i className={`fas fa-check ${goal.completed ? 'opacity-100' : 'opacity-10'}`}></i>
                 </button>
                 <span className="flex-1 text-[8px] md:text-[10px] leading-tight">{goal.title}</span>
-                <button onClick={() => deleteGoal(goal.id)} className="text-red-500 text-[8px] md:text-[10px]">
+                <button onClick={() => deleteGoal(goal.id)} className="text-red-500 text-[8px] md:text-[10px] hover:scale-110">
                   [X]
                 </button>
               </div>
@@ -160,24 +180,29 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
         <section className="pixel-box">
           <h3 className="text-[10px] mb-6 underline">PARTY_MEMBERS</h3>
           <div className="space-y-6">
-            {friends.length > 0 ? friends.map((friend) => (
-              <div key={friend.id} className="flex items-center gap-4 group">
-                <div className="w-12 h-12 border-4 border-black bg-white shrink-0">
-                  <img 
-                    src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} 
-                    alt={friend.username} 
-                    className="w-full h-full" 
-                  />
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <p className="text-[8px] font-bold truncate">{friend.username}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="w-2 h-2 bg-green-500 border-2 border-black"></div>
-                    <p className="text-[6px] text-green-600">ONLINE</p>
+            {friends.length > 0 ? friends.map((friend) => {
+              const isOnline = onlineUsers.includes(friend.id);
+              return (
+                <div key={friend.id} className="flex items-center gap-4 group">
+                  <div className={`w-12 h-12 border-4 border-black bg-white shrink-0 ${!isOnline && 'grayscale opacity-50'}`}>
+                    <img 
+                      src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} 
+                      alt={friend.username} 
+                      className="w-full h-full" 
+                    />
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className={`text-[8px] font-bold truncate ${!isOnline && 'text-slate-400'}`}>{friend.username}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className={`w-2 h-2 border-2 border-black ${isOnline ? 'bg-green-500' : 'bg-slate-400'}`}></div>
+                      <p className={`text-[6px] ${isOnline ? 'text-green-600' : 'text-slate-400'}`}>
+                        {isOnline ? 'ONLINE' : 'OFFLINE'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )) : (
+              );
+            }) : (
               <p className="text-[8px] text-slate-400 text-center">NO ALLIES FOUND.</p>
             )}
           </div>

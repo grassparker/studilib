@@ -18,69 +18,127 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [notes, setNotes] = useState<string>('');
+  const [targetTimestamp, setTargetTimestamp] = useState<string | null>(null);
 
+  // 1. Initial Session & Data Load
   useEffect(() => {
-    const getSession = async () => {
+    const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) setCurrentUser(session.user);
+      if (session) {
+        setCurrentUser(session.user);
+        const { data } = await supabase.from('profiles').select('timer_ends_at, timer_mode, last_notes').eq('id', session.user.id).single();
+        
+        if (data?.last_notes) setNotes(data.last_notes);
+        
+        // If there's an active timer in the DB, resume it
+        if (data?.timer_ends_at) {
+          const end = new Date(data.timer_ends_at).getTime();
+          const now = new Date().getTime();
+          if (end > now) {
+            setTargetTimestamp(data.timer_ends_at);
+            setMode(data.timer_mode as TimerMode || TimerMode.POMODORO);
+            setIsActive(true);
+          } else {
+            // Timer expired while user was away
+            await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', session.user.id);
+          }
+        }
+      }
     };
-    getSession();
+    init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-    const loadNotes = async () => {
-      if (currentUser) {
-        const { data } = await supabase.from('profiles').select('last_notes').eq('id', currentUser.id).single();
-        if (data?.last_notes) setNotes(data.last_notes);
-      }
-    };
-    loadNotes();
-  }, [currentUser]);
 
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 2. THE MASTER SYNC LOGIC
   useEffect(() => {
     let interval: any = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && isActive) {
-      handleComplete();
+
+    const syncTimer = () => {
+      if (!isActive || !targetTimestamp) return;
+
+      const now = new Date().getTime();
+      const end = new Date(targetTimestamp).getTime();
+      const remaining = Math.max(0, Math.floor((end - now) / 1000));
+
+      if (remaining === 0) {
+        handleComplete();
+      } else {
+        setTimeLeft(remaining);
+      }
+    };
+
+    if (isActive) {
+      syncTimer(); 
+      interval = setInterval(syncTimer, 1000);
     }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft]);
+
+    const handleVisibility = () => { if (document.visibilityState === 'visible') syncTimer(); };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [isActive, targetTimestamp]);
+
+  const toggleTimer = async () => {
+    if (isActive) {
+      setIsActive(false);
+      setTargetTimestamp(null);
+      if (currentUser) {
+        await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', currentUser.id);
+      }
+    } else {
+      const duration = mode === TimerMode.POMODORO ? 25 : mode === TimerMode.SHORT_BREAK ? 5 : 15;
+      const endAt = new Date(Date.now() + duration * 60000).toISOString();
+      setTargetTimestamp(endAt);
+      setIsActive(true);
+      if (currentUser) {
+        await supabase.from('profiles').update({ timer_ends_at: endAt, timer_mode: mode }).eq('id', currentUser.id);
+      }
+    }
+  };
 
   const handleComplete = async () => {
     setIsActive(false);
-    triggerPopup("QUEST_COMPLETE", "REWARDS_COLLECTED");
+    setTargetTimestamp(null);
     
-    const minutesSpent = mode === TimerMode.POMODORO ? 25 : (mode === TimerMode.SHORT_BREAK ? 5 : 15);
+    triggerPopup("QUEST_COMPLETE", "REWARDS_COLLECTED");
 
+    const alertMessage = mode === TimerMode.POMODORO 
+      ? "QUEST COMPLETE! Time for a well-earned break. ☕" 
+      : "BREAK OVER! Ready for the next quest? ⚔️";
+    
     if (currentUser) {
-      await supabase.from('study_sessions').insert([{
-        user_id: currentUser.id,
-        time: minutesSpent,
-        status: 'completed'
-      }]);
+      await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', currentUser.id);
+      const minutesSpent = mode === TimerMode.POMODORO ? 25 : (mode === TimerMode.SHORT_BREAK ? 5 : 15);
+      await supabase.from('study_sessions').insert([{ user_id: currentUser.id, time: minutesSpent, status: 'completed' }]);
+      if (mode === TimerMode.POMODORO) updateCoins(25);
     }
-
-    if (mode === TimerMode.POMODORO) updateCoins(25);
-    resetTimer(mode);
+    
+    if (mode === TimerMode.POMODORO) {
+      setMode(TimerMode.SHORT_BREAK);
+      resetTimer(TimerMode.SHORT_BREAK);
+    } else {
+      setMode(TimerMode.POMODORO);
+      resetTimer(TimerMode.POMODORO);
+    }
   };
 
   const resetTimer = (targetMode: TimerMode) => {
     setIsActive(false);
-    if (targetMode === TimerMode.POMODORO) setTimeLeft(25 * 60);
-    else if (targetMode === TimerMode.SHORT_BREAK) setTimeLeft(5 * 60);
-    else setTimeLeft(15 * 60);
+    setTargetTimestamp(null);
+    const mins = targetMode === TimerMode.POMODORO ? 25 : targetMode === TimerMode.SHORT_BREAK ? 5 : 15;
+    setTimeLeft(mins * 60);
   };
 
   const handleNoteChange = async (val: string) => {
@@ -110,21 +168,22 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
     <div className="game-ui-scope flex flex-col lg:flex-row gap-8 min-h-full p-4 lg:p-8">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        .game-ui-scope { image-rendering: pixelated; background: #F3F4F6; }
+        .game-ui-scope { image-rendering: pixelated; }
         .game-ui-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
         
         .menu-box {
           background: white;
           border: 4px solid black;
-          box-shadow: 6px 6px 0 0 rgba(0,0,0,0.1);
-          padding: 20px;
+          box-shadow: 8px 8px 0 0 rgba(0,0,0,1);
+          padding: 24px;
         }
 
         .timer-text {
-          font-size: clamp(2rem, 12vw, 5rem);
+          font-size: clamp(2rem, 10vw, 4.5rem);
           color: black;
           margin: 30px 0;
           text-align: center;
+          letter-spacing: -2px;
         }
 
         .progress-container {
@@ -132,67 +191,75 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
           height: 24px;
           border: 4px solid black;
           background: #EEE;
+          position: relative;
         }
 
         .progress-fill {
           height: 100%;
-          background: #ffaa00;
+          background: #FBBF24;
           transition: width 1s linear;
         }
 
         .btn-action {
-          background: #ffaa00;
+          background: #FBBF24;
           border: 4px solid black;
-          padding: 14px 24px;
+          padding: 16px 32px;
           font-size: 10px;
           cursor: pointer;
           box-shadow: 4px 4px 0 0 black;
         }
         .btn-action:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 black; }
+        .btn-action:disabled { background: #ccc; cursor: not-allowed; }
 
         .btn-reset {
           background: white;
           border: 4px solid black;
           padding: 12px;
           cursor: pointer;
+          box-shadow: 4px 4px 0 0 black;
         }
+        .btn-reset:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 black; }
 
         .mode-btn {
           font-size: 7px;
-          padding: 8px 10px;
+          padding: 10px;
           border-bottom: 4px solid transparent;
           color: #999;
+          transition: all 0.2s;
         }
         .mode-btn.active { border-bottom: 4px solid #FBBF24; color: black; }
+        .mode-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .notes-input {
           width: 100%;
-          min-height: 300px;
+          min-height: 350px;
           border: 4px solid black;
-          padding: 16px;
+          padding: 20px;
           font-size: 10px;
-          line-height: 2;
+          line-height: 1.8;
           resize: none;
           outline: none;
+          background: #FFF;
         }
         
-        .ui-label { font-size: 10px; text-decoration: underline; margin-bottom: 16px; display: block; }
+        .ui-label { font-size: 10px; text-decoration: underline; margin-bottom: 20px; display: block; font-weight: bold; }
       `}</style>
 
-      {/* TIMER SECTION (Top on mobile, Left on Desktop) */}
+      {/* TIMER SECTION */}
       <div className="flex-1 menu-box flex flex-col items-center">
         <span className="ui-label self-start">QUEST_TIMER</span>
         
-        <div className="progress-container mb-6">
+        <div className="progress-container mb-8">
           <div className="progress-fill" style={{ width: `${progressPercentage}%` }} />
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-6">
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
           {[TimerMode.POMODORO, TimerMode.SHORT_BREAK, TimerMode.LONG_BREAK].map((m) => (
             <button
               key={m}
               onClick={() => { setMode(m); resetTimer(m); }}
               className={`mode-btn ${mode === m ? 'active' : ''}`}
+              disabled={isActive}
             >
               {m.replace('_', ' ')}
             </button>
@@ -203,33 +270,38 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
           {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}
         </h1>
 
-        <div className="flex gap-4 mb-4">
-          <button onClick={() => setIsActive(!isActive)} className="btn-action">
+        <div className="flex gap-6 mt-4">
+          <button onClick={toggleTimer} className="btn-action">
             {isActive ? 'HALT' : 'BEGIN'}
           </button>
           <button onClick={() => resetTimer(mode)} className="btn-reset">
-            <i className="fas fa-undo"></i>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="square">
+              <path d="M1 4v6h6" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
           </button>
         </div>
       </div>
 
-      {/* NOTES SECTION (Bottom on mobile, Right on Desktop) */}
-      <div className="w-full lg:w-[400px] menu-box flex flex-col">
-        <div className="flex justify-between items-center mb-4">
+      {/* NOTES SECTION */}
+      <div className="w-full lg:w-[450px] menu-box flex flex-col shadow-[8px_8px_0_0_#FBBF24]">
+        <div className="flex justify-between items-center mb-6">
           <span className="ui-label">QUEST_LOG</span>
-          <button onClick={downloadNotes} className="text-[7px] text-gray-400">[EXPORT]</button>
+          <button onClick={downloadNotes} className="text-[8px] hover:text-amber-600 transition-colors">
+            [EXPORT_DATA]
+          </button>
         </div>
 
         <textarea
           value={notes}
           onChange={(e) => handleNoteChange(e.target.value)}
-          placeholder="ENTER_INTEL..."
+          placeholder="WAITING_FOR_INPUT..."
           className="notes-input flex-1"
         />
         
-        <div className="mt-4 flex justify-between text-[7px] text-gray-400">
-          <p>STATUS: ONLINE</p>
-          <p>CHARS: {notes.length}</p>
+        <div className="mt-6 flex justify-between text-[7px] text-gray-400 tracking-widest">
+          <p>CONNECTION: ENCRYPTED</p>
+          <p>BYTE_COUNT: {notes.length}</p>
         </div>
       </div>
     </div>
