@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 
 export const Friends: React.FC<{ user: User }> = ({ user }) => {
+  const { t } = useTranslation();
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [friends, setFriends] = useState<any[]>([]);
@@ -87,16 +89,16 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
       .eq('email', searchEmail.trim())
       .single();
     if (data) setSearchResults([data]);
-    else alert("PLAYER NOT FOUND");
+    else alert(t('player_not_found'));
   };
 
   const sendRequest = async (friendId: string) => {
-    if (friendId === user.id) return alert("LONELY_HERO_ERROR");
+    if (friendId === user.id) return alert(t('lonely_hero_error'));
     const { error } = await supabase.from('friendships').insert([
         { user_id: user.id, friend_id: friendId, status: 'pending' }
     ]);
-    if (error) alert("ALREADY PENDING!");
-    else alert("REQUEST SENT!");
+    if (error) alert(t('already_pending'));
+    else alert(t('request_sent'));
   };
 
   const acceptFriend = async (requesterId: string) => {
@@ -165,18 +167,18 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
 
       {/* SEARCH SECTION */}
       <section className="pixel-box-white">
-        <h2 className="text-[12px] mb-8 underline decoration-double">SEARCH_PLAYERS</h2>
+        <h2 className="text-[12px] mb-8 underline decoration-double">{t('search_players')}</h2>
         <div className="flex flex-col md:flex-row gap-4">
           <input 
             type="email"
-            placeholder="INPUT_EMAIL..."
+            placeholder={t('input_email')}
             className="pixel-input-field"
             value={searchEmail}
             onChange={(e) => setSearchEmail(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
           <button onClick={handleSearch} className="pixel-btn-action whitespace-nowrap">
-            <i className="fas fa-search"></i> FIND
+            <i className="fas fa-search"></i> {t('find')}
           </button>
         </div>
         
@@ -187,7 +189,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
               <span className="text-[10px]">{result.username}</span>
             </div>
             <button onClick={() => sendRequest(result.id)} className="pixel-btn-action bg-white shadow-none">
-              <i className="fas fa-user-plus"></i> ADD
+              <i className="fas fa-user-plus"></i> {t('add')}
             </button>
           </div>
         ))}
@@ -196,7 +198,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
       {/* PENDING SECTION */}
       {pendingRequests.length > 0 && (
         <section className="pixel-box-green">
-          <h2 className="text-[12px] mb-6 text-green-900">! INCOMING_REQUESTS</h2>
+          <h2 className="text-[12px] mb-6 text-green-900">! {t('incoming_requests')}</h2>
           <div className="space-y-6">
             {pendingRequests.map((request) => (
               <div key={request.user_id} className="flex items-center justify-between bg-white border-4 border-black p-6">
@@ -204,11 +206,11 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
                    <img src={request.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${request.profiles?.username}`} className="pixel-avatar" />
                    <div>
                      <span className="text-[10px]">{request.profiles?.username}</span>
-                     <p className="text-[7px] text-slate-500 mt-2">WANTS_TO_JOIN</p>
+                     <p className="text-[7px] text-slate-500 mt-2">{t('wants_to_join')}</p>
                    </div>
                 </div>
                 <button onClick={() => acceptFriend(request.user_id)} className="pixel-btn-action bg-[#45a049] text-white">
-                  <i className="fas fa-check-double"></i> ACCEPT
+                  <i className="fas fa-check-double"></i> {t('accept')}
                 </button>
               </div>
             ))}
@@ -218,7 +220,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
 
       {/* FRIENDS LIST SECTION */}
       <section className="pixel-box-white">
-        <h2 className="text-[12px] mb-8 underline decoration-double">YOUR_PARTY</h2>
+        <h2 className="text-[12px] mb-8 underline decoration-double">{t('your_party')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {friends.length > 0 ? friends.map(friend => {
             const isOnline = onlineUsers.includes(friend.id);
@@ -233,13 +235,13 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
                   <p className="text-[10px] font-bold">{friend.username}</p>
                   <p className={`text-[7px] mt-3 flex items-center gap-2 ${isOnline ? 'text-blue-600' : 'text-slate-400'}`}>
                     <i className={`fas ${isOnline ? 'fa-bolt' : 'fa-moon'}`}></i>
-                    {isOnline ? 'STATUS: ACTIVE' : 'STATUS: SLEEPING'}
+                    {isOnline ? t('status_active') : t('status_sleeping')}
                   </p>
                 </div>
               </div>
             );
           }) : (
-            <p className="text-[8px] text-slate-400 italic col-span-2 text-center py-12">LOBBY_EMPTY... FIND_ALLIES_ABOVE</p>
+            <p className="text-[8px] text-slate-400 italic col-span-2 text-center py-12">{t('lobby_empty')}</p>
           )}
         </div>
       </section>

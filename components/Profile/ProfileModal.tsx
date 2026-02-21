@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 
@@ -10,6 +11,7 @@ interface ProfileModalProps {
 }
 
 export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }: ProfileModalProps) {
+    const { t } = useTranslation();
     const [newUsername, setNewUsername] = useState('');
     const [dailyGoal, setDailyGoal] = useState(100); 
     const [sessionCount, setSessionCount] = useState(0);
@@ -106,8 +108,8 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
         if (!newUsername.trim()) return;
     
         if (newPassword) {
-            if (newPassword.length < 6) return alert("ERR: PASSWORD_TOO_SHORT");
-            if (newPassword !== confirmPassword) return alert("ERR: PASSWORD_MISMATCH");
+            if (newPassword.length < 6) return alert(t('password_too_short'));
+            if (newPassword !== confirmPassword) return alert(t('password_mismatch'));
             const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
             if (authError) return alert(`AUTH_ERR: ${authError.message}`);
         }
@@ -121,7 +123,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
             onProfileUpdate({ username: newUsername, daily_goal: dailyGoal }); 
             setNewPassword('');
             setConfirmPassword('');
-            alert('SYSTEM_RECONFIGURED_SUCCESSFULLY');
+            alert(t('system_reconfigured'));
         }
     };
 
@@ -144,16 +146,16 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
             <div className="terminal-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto p-10 relative">
                 <button onClick={onClose} className="absolute top-4 right-4 text-red-500">[X]</button>
                 <h1 className="text-[12px] mb-10 text-[#ffaa00] border-b-2 border-[#333] pb-4">
-                    USER_PROFILE // ID_{user.id.substring(0,8)}
+                    {t('user_profile')} // ID_{user.id.substring(0,8)}
                 </h1>
 
                 <div className="stat-box mb-8">
-                    <h2 className="text-[8px] text-[#00ff00] mb-6 tracking-widest">{">"} PROGRESS_REPORT</h2>
+                    <h2 className="text-[8px] text-[#00ff00] mb-6 tracking-widest">{">"} {t('progress_report')}</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-center">
-                        <div><p className="text-[6px] text-slate-500 mb-2">MINS</p><p className="text-[10px] text-white">{totalFocusMinutes}</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">SESS</p><p className="text-[10px] text-white">{sessionCount}</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">STREAK</p><p className="text-[10px] text-[#ffaa00]">{streak}D</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">QUOTA</p><p className="text-[10px] text-white">{rawPercent}%</p></div>
+                        <div><p className="text-[6px] text-slate-500 mb-2">{t('mins')}</p><p className="text-[10px] text-white">{totalFocusMinutes}</p></div>
+                        <div><p className="text-[6px] text-slate-500 mb-2">{t('sess')}</p><p className="text-[10px] text-white">{sessionCount}</p></div>
+                        <div><p className="text-[6px] text-slate-500 mb-2">{t('streak')}</p><p className="text-[10px] text-[#ffaa00]">{streak}D</p></div>
+                        <div><p className="text-[6px] text-slate-500 mb-2">{t('quota')}</p><p className="text-[10px] text-white">{rawPercent}%</p></div>
                     </div>
                     <div className="xp-bar-container">
                         <div className="h-full xp-bar-fill" style={{ width: `${barWidth}%` }} />
@@ -162,30 +164,30 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     <div className="stat-box">
-                        <h2 className="text-[8px] mb-6 text-slate-400"># IDENTITY</h2>
+                        <h2 className="text-[8px] mb-6 text-slate-400"># {t('identity')}</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">USERNAME</label>
+                                <label className="text-[6px] block mb-2 text-slate-500">{t('username')}</label>
                                 <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="pixel-input" />
                             </div>
                             <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">DAILY_GOAL (MINS)</label>
+                                <label className="text-[6px] block mb-2 text-slate-500">{t('daily_goal')}</label>
                                 <input type="number" value={dailyGoal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="pixel-input" />
                             </div>
                         </div>
                     </div>
 
                     <div className="stat-box border-red-900/50">
-                        <h2 className="text-[8px] text-red-500 mb-6">! SECURITY</h2>
+                        <h2 className="text-[8px] text-red-500 mb-6">! {t('security')}</h2>
                         <div className="space-y-4">
-                            <input type="password" placeholder="NEW_PASS" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pixel-input" />
-                            <input type="password" placeholder="CONFIRM_PASS" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`pixel-input ${confirmPassword && !passwordsMatch ? 'border-red-500' : ''}`} />
+                            <input type="password" placeholder={t('new_pass')} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pixel-input" />
+                            <input type="password" placeholder={t('confirm_pass')} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`pixel-input ${confirmPassword && !passwordsMatch ? 'border-red-500' : ''}`} />
                         </div>
                     </div>
                 </div>
 
                 <button onClick={handleSaveProfile} className="pixel-btn-save">
-                    {">"} EXECUTE_UPDATE
+                    {">"} {t('execute_update')}
                 </button>
             </div>
         </div>
