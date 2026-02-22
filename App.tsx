@@ -10,6 +10,9 @@ import ProfileModal from './components/Profile/ProfileModal';
 import { supabase } from './components/Auth/supabaseClient';
 import { LandingPage } from './public/LandingPage';
 
+// Import your landing page here (or create a placeholder)
+// import { LandingPage } from './pages/LandingPage'; 
+
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
@@ -17,38 +20,11 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // --- 1. CORE FUNCTIONS ---
-
-  const handleProfileUpdate = (updatedData: any) => {
-    setUser(prev => {
-      if (!prev) return null;
-      return { ...prev, ...updatedData };
-    });
-  };
-
-  const updateCoins = async (amount: number) => {
-    if (!user) return;
-    const newCount = (user.coins || 0) + amount;
-    
-    setUser(prev => {
-      if (!prev) return null;
-      return { ...prev, coins: newCount };
-    });
-
-    await supabase
-      .from('profiles')
-      .update({ coins: newCount })
-      .eq('id', user.id);
-  };
-
-  // --- 2. DATA FETCHING ---
-
+  // --- 1. DATA FETCHING ---
   useEffect(() => {
     const fetchProfileData = async (userId: string) => {
       const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (data) {
-        setUser(prev => ({ ...prev, ...data } as any));
-      }
+      if (data) setUser(prev => ({ ...prev, ...data } as any));
     };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -67,7 +43,6 @@ const App: React.FC = () => {
         setUser(null);
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -81,8 +56,7 @@ const App: React.FC = () => {
     i18n.changeLanguage(newLang);
   };
 
-  // --- 3. PIXEL THEME RENDER ---
-
+  // --- 2. LOADING SCREEN ---
   if (isLoading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-[#FBBF24]">
@@ -97,12 +71,7 @@ const App: React.FC = () => {
           }
         `}</style>
         <div className="pixel-box p-8 animate-pulse">
-          <div className="text-black text-2xl mb-4 text-center">
-            <i className="fas fa-spinner fa-spin"></i>
-          </div>
-          <p className="pixel-font text-[10px] tracking-widest text-black">
-            {t('loading_os')}
-          </p>
+          <p className="pixel-font text-[10px] tracking-widest text-black">{t('loading_os')}</p>
         </div>
       </div>
     );
