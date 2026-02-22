@@ -10,9 +10,6 @@ import ProfileModal from './components/Profile/ProfileModal';
 import { supabase } from './components/Auth/supabaseClient';
 import { LandingPage } from './public/LandingPage';
 
-// Import your landing page here (or create a placeholder)
-// import { LandingPage } from './pages/LandingPage'; 
-
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
@@ -22,28 +19,62 @@ const App: React.FC = () => {
 
   // --- 1. DATA FETCHING ---
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProfileData = async (userId: string) => {
       const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (data) setUser(prev => ({ ...prev, ...data } as any));
+      if (isMounted && data) {
+        setUser(prev => ({ ...prev, ...data } as any));
+      }
     };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user as any);
-        fetchProfileData(session.user.id);
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Auth error:', error);
+          if (isMounted) setIsLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          if (isMounted) {
+            setUser(session.user as any);
+            await fetchProfileData(session.user.id);
+          }
+        } else {
+          if (isMounted) {
+            setUser(null);
+          }
+        }
+
+        if (isMounted) setIsLoading(false);
+      } catch (err) {
+        console.error('Auth init error:', err);
+        if (isMounted) setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
+
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(session.user as any);
-        fetchProfileData(session.user.id);
+        if (isMounted) {
+          setUser(session.user as any);
+          fetchProfileData(session.user.id);
+        }
       } else {
-        setUser(null);
+        if (isMounted) {
+          setUser(null);
+        }
       }
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -54,6 +85,28 @@ const App: React.FC = () => {
   const handleLanguageChange = () => {
     const newLang = i18n.language === 'EN' ? 'ZH' : 'EN';
     i18n.changeLanguage(newLang);
+  };
+
+  const handleProfileUpdate = (updatedData: any) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      return { ...prev, ...updatedData };
+    });
+  };
+
+  const updateCoins = async (amount: number) => {
+    if (!user) return;
+    const newCount = (user.coins || 0) + amount;
+    
+    setUser((prev) => {
+      if (!prev) return null;
+      return { ...prev, coins: newCount };
+    });
+
+    await supabase
+      .from('profiles')
+      .update({ coins: newCount })
+      .eq('id', user.id);
   };
 
   // --- 2. LOADING SCREEN ---
@@ -134,7 +187,6 @@ const App: React.FC = () => {
                   />
 
                   <main className="flex-1 overflow-y-auto p-4 md:p-8 main-content-area">
-                    {/* The Dashboard container handles the inner pixel styling */}
                     <div className="max-w-7xl mx-auto h-full">
                       <Dashboard 
                         activeTab={activeTab} 
