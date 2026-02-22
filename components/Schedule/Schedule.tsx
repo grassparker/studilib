@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../Auth/supabaseClient';
 import { User } from '../../types';
+import '../../index.css';
 
 interface ScheduledTask {
   id: string;
@@ -119,7 +120,8 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
     <div className="schedule-scope space-y-8 p-4 max-w-4xl mx-auto pb-32">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        .schedule-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
+        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+        .schedule-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
         
         .party-panel {
           background: white;

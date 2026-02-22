@@ -8,6 +8,7 @@ import { TopBar } from './components/Layout/TopBar';
 import { User } from './types';
 import ProfileModal from './components/Profile/ProfileModal';
 import { supabase } from './components/Auth/supabaseClient';
+import { LandingPage } from './public/LandingPage';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -72,6 +73,7 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setUser(null);
   };
 
   const handleLanguageChange = () => {
@@ -86,7 +88,8 @@ const App: React.FC = () => {
       <div className="h-screen w-full flex flex-col items-center justify-center bg-[#FBBF24]">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-          .pixel-font { font-family: 'Press Start 2P', cursive; }
+          @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+          .pixel-font { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace; }
           .pixel-box {
             border: 6px solid black;
             background: white;
@@ -105,74 +108,95 @@ const App: React.FC = () => {
     );
   }
 
-  if (!user) {
-    return <AuthForms onLogin={() => {}} />;
-  }
-
   return (
     <Router>
-      <div className="flex h-screen bg-[#f0f0f0] overflow-hidden">
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-          * { font-family: 'Press Start 2P', cursive; }
-          
-          /* Custom Scrollbar for Pixel Look */
-          ::-webkit-scrollbar { width: 12px; }
-          ::-webkit-scrollbar-track { background: #eee; border-left: 4px solid black; }
-          ::-webkit-scrollbar-thumb { background: black; border: 2px solid white; }
-          
-          .main-content-area {
-            background-image: radial-gradient(#d1d5db 1px, transparent 1px);
-            background-size: 20px 20px;
-          }
-        `}</style>
+      <Routes>
+        {/* Landing Page - Public */}
+        <Route path="/" element={<LandingPage />} />
 
-        <Sidebar 
-          activeTab={activeTab} 
-          onTabChange={setActiveTab} 
-          onLogout={handleLogout} 
+        {/* Login Page */}
+        <Route 
+          path="/login" 
+          element={user ? <Navigate to="/app" /> : <AuthForms onLogin={() => {}} />} 
         />
-        
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden border-l-4 border-black">
-          
-          <TopBar 
-            user={user} 
-            onAvatarClick={() => setIsProfileOpen(true)} 
-          />
-          
-          <ProfileModal
-            isOpen={isProfileOpen}
-            onClose={() => setIsProfileOpen(false)}
-            user={user}
-            onProfileUpdate={handleProfileUpdate}
-          />
 
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 main-content-area">
-            {/* The Dashboard container handles the inner pixel styling */}
-            <div className="max-w-7xl mx-auto h-full">
-               <Dashboard 
-                activeTab={activeTab} 
-                user={user} 
-                updateCoins={updateCoins}
-              />
-            </div>
-          </main>
+        {/* Protected App Routes */}
+        <Route 
+          path="/app" 
+          element={
+            !user ? (
+              <Navigate to="/login" />
+            ) : (
+              <div className="flex h-screen bg-[#f0f0f0] overflow-hidden">
+                <style>{`
+                  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+                  @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+                  * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace; }
+                  
+                  /* Custom Scrollbar for Pixel Look */
+                  ::-webkit-scrollbar { width: 12px; }
+                  ::-webkit-scrollbar-track { background: #eee; border-left: 4px solid black; }
+                  ::-webkit-scrollbar-thumb { background: black; border: 2px solid white; }
+                  
+                  .main-content-area {
+                    background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+                    background-size: 20px 20px;
+                  }
+                `}</style>
 
-          {/* SYSTEM STATUS BAR - Optional but very RPG-like */}
-          <footer className="h-8 bg-black text-white flex items-center px-4 justify-between">
-            <span className="text-[6px] uppercase tracking-[0.2em]">{t('system_stable')}</span>
-            <div className="flex gap-4">
-               <span className="text-[6px] uppercase">{t('region')}</span>
-               <button 
-                onClick={handleLanguageChange}
-                className="text-[6px] text-amber-400 underline"
-               >
-                 {t('language')}: {i18n.language}
-               </button>
-            </div>
-          </footer>
-        </div>
-      </div>
+                <Sidebar 
+                  activeTab={activeTab} 
+                  onTabChange={setActiveTab} 
+                  onLogout={handleLogout} 
+                />
+                
+                <div className="flex-1 flex flex-col min-w-0 overflow-hidden border-l-4 border-black">
+                  
+                  <TopBar 
+                    user={user} 
+                    onAvatarClick={() => setIsProfileOpen(true)} 
+                  />
+                  
+                  <ProfileModal
+                    isOpen={isProfileOpen}
+                    onClose={() => setIsProfileOpen(false)}
+                    user={user}
+                    onProfileUpdate={handleProfileUpdate}
+                  />
+
+                  <main className="flex-1 overflow-y-auto p-4 md:p-8 main-content-area">
+                    {/* The Dashboard container handles the inner pixel styling */}
+                    <div className="max-w-7xl mx-auto h-full">
+                      <Dashboard 
+                        activeTab={activeTab} 
+                        user={user} 
+                        updateCoins={updateCoins}
+                      />
+                    </div>
+                  </main>
+
+                  {/* SYSTEM STATUS BAR */}
+                  <footer className="h-8 bg-black text-white flex items-center px-4 justify-between">
+                    <span className="text-[6px] uppercase tracking-[0.2em]">{t('system_stable')}</span>
+                    <div className="flex gap-4">
+                      <span className="text-[6px] uppercase">{t('region')}</span>
+                      <button 
+                        onClick={handleLanguageChange}
+                        className="text-[6px] text-amber-400 underline"
+                      >
+                        {t('language')}: {i18n.language}
+                      </button>
+                    </div>
+                  </footer>
+                </div>
+              </div>
+            )
+          } 
+        />
+
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
     </Router>
   );
 };

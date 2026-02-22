@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+.pixel-border {
+  @apply border-[6px] border-black shadow-[8px_8px_0_0_black];
+}

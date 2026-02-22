@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
+import '../../index.css';
 
 interface ProfileModalProps {
     isOpen: boolean;
@@ -133,7 +134,8 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
         <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-                .profile-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
+                @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+                .profile-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
                 .terminal-modal { background: #1a1a1a; border: 4px solid #333; color: #00ff00; }
                 .stat-box { border: 2px solid #333; background: #111; padding: 15px; }
                 .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 20px; padding: 2px; }

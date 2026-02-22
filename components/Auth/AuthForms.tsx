@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from './supabaseClient';
 
+
 interface AuthFormsProps {
   onLogin: () => void;
 }
@@ -52,11 +53,11 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#FBBF24] p-4">
       <style>{`
-        @import url('https://cdn.jsdelivr.net/npm/zpix@1.3.1/dist/zpix.min.css');
+        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         
         .auth-scope * {
-          font-family: 'zpix', 'Press Start 2P', cursive !important;
+          font-family: 'Press Start 2P', "WDXL Lubrifont SC", cursive !important;
           text-transform: uppercase;
           image-rendering: pixelated;
         }

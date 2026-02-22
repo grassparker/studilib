@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import * as packageJson from '../../package.json';
+import '../../index.css';
 
 interface SidebarProps {
   activeTab: string;
@@ -10,7 +12,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogout }) => {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-
+  
   const menuItems = [
     { id: 'dashboard', icon: 'fa-th-large', label: t('status') },
     { id: 'focus', icon: 'fa-stopwatch', label: t('quest') },
@@ -51,7 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
         
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-          .font-pixel { font-family: 'Press Start 2P', cursive; }
+          @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+          .font-pixel { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace; }
           
           .menu-container-social {
             border: 4px solid black;
@@ -154,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
             <span className="text-[8px]">{t('shut_down')}</span>
           </button>
           <p className="text-[6px] text-slate-400 text-center font-pixel mt-6 uppercase tracking-widest">
-            {t('beta')}
+            v.{packageJson.version} - {t('version')}
           </p>
         </div>
       </aside>

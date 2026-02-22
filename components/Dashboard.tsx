@@ -9,6 +9,7 @@ import ProfileModal from './Profile/ProfileModal';
 import { TopBar } from './Layout/TopBar';
 import { Schedule } from './Schedule/Schedule';
 
+
 interface DashboardProps {
   activeTab: string;
   user: User;
