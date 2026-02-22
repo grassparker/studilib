@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
+import '../../index.css';
 
 export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const { t } = useTranslation();
@@ -112,10 +113,10 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
       
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
         
         .social-scope { image-rendering: pixelated; }
-        .social-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
-        .social-scope i { font-family: "Font Awesome 6 Free" !important; text-transform: none !important; }
+        .social-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
 
         .pixel-box-white {
           border: 4px solid black;

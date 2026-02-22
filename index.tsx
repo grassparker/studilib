@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './i18n/config'; // Add this at the top, before React renders
+import './index.css';
 import App from './App';
 
 const rootElement = document.getElementById('root');

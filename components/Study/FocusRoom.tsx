@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TimerMode } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
+import '../../index.css';
 
 interface FocusRoomProps {
   updateCoins: (amount: number) => void;
@@ -183,8 +184,9 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
     <div className="game-ui-scope flex flex-col lg:flex-row gap-8 min-h-full p-4 lg:p-8">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
         .game-ui-scope { image-rendering: pixelated; }
-        .game-ui-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
+        .game-ui-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
         
         .menu-box {
           background: white;

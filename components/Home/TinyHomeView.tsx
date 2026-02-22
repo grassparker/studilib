@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, HomeItem } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
+import '../../index.css';
 
 
 interface InteractiveItem extends HomeItem {
@@ -88,9 +89,9 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
       
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        
+        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
         .haven-scope { image-rendering: pixelated; }
-        .haven-scope * { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
+        .haven-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
 
         .pixel-border-social {
           background: white;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
+import '../../index.css';
 
 interface TopBarProps {
   user: User;
@@ -31,7 +32,8 @@ export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
       
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        .pixel-font { font-family: 'Press Start 2P', cursive; }
+        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+        .pixel-font { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace; }
         
         .hud-box {
           background: #333;
