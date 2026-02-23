@@ -141,7 +141,8 @@ export const LandingPage: React.FC = () => {
             ★★★★★ Try Pixeldoro as well!
           </h2>
           <div className="space-y-6 text-[10px] leading-relaxed">
-            <p></p>Different people have different approaches to problems, such as productivity. Here is another amazing productivity app I discovered that has a totally yet amazing approach to keep you focused. :) <br/> I promise, it's wonderful! </p>
+            <p>Different people have different approaches to problems, such as productivity. Here is another amazing productivity app I discovered that has a totally yet amazing approach to keep you focused. :) <br/> I promise, it's wonderful! </p>
+            <p>Few words of suggestions: If you want hardcore productivity app that has pomos, tasks and calendar sync which is coming up and study with your friends, use StudiLib. If you are the type that enjoys lots of creativity while being super productive and getting into pomo competitions, use Pixeldoro! I enjoy both, so I use both. XD</p>
           </div>
         </div>
 
