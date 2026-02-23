@@ -44,7 +44,7 @@ export const LandingPage: React.FC = () => {
       <div className="text-center max-w-4xl relative">
         <div className="bg-white pixel-border p-8 mb-8 inline-block relative overflow-hidden">
           <div className="scanline"></div>
-          <h1 className="text-3xl md:text-6xl mb-4 tracking-tighter">STUDI_OS</h1>
+          <h1 className="text-3xl md:text-6xl mb-4 tracking-tighter">STUDILIB</h1>
           <p className="text-[10px] md:text-[12px] leading-relaxed opacity-80 uppercase">
             {t('landing_tagline') || 'Level up your life, one pomodoro at a time.'}
           </p>

@@ -4,7 +4,7 @@ import { User, HomeItem } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 import '../../index.css';
 
-
+// Ensure this matches your types.ts update
 interface InteractiveItem extends HomeItem {
   level: number;
 }
@@ -14,43 +14,70 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
   const [items, setItems] = useState<InteractiveItem[]>([]);
   const GRID_SIZE = 10;
 
-  useEffect(() => {
-    const loadHome = async () => {
-      if (!user?.id) return;
-      const { data } = await supabase.from('profiles').select('home_layout').eq('id', user.id).single();
-      if (data?.home_layout) setItems(data.home_layout);
-    };
-    loadHome();
-  }, [user.id]);
-
+  // 1. DECLARE SHOP ITEMS FIRST
   const shopItems = useMemo(() => [
-  { id: 'shelf', name: t('books'), price: 20, icon: 'fa-list-ul', color: 'bg-[#8b4513]', action: t('sort') },
-  { id: 'lamp', name: t('lamp'), price: 15, icon: 'fa-lightbulb', color: 'bg-[#ffd700]', action: t('glow') },
-  { id: 'plant', name: t('plant'), price: 10, icon: 'fa-leaf', color: 'bg-[#228b22]', action: t('grow') },
-  { id: 'coffee', name: t('beans'), price: 40, icon: 'fa-mug-hot', color: 'bg-[#5c4033]', action: t('brew') },
-], [i18n.language, t]);
+    { id: 'shelf', name: t('books'), price: 20, icon: 'fa-list-ul', color: 'bg-[#8b4513]', action: t('sort') },
+    { id: 'lamp', name: t('lamp'), price: 15, icon: 'fa-lightbulb', color: 'bg-[#ffd700]', action: t('glow') },
+    { id: 'plant', name: t('plant'), price: 10, icon: 'fa-leaf', color: 'bg-[#228b22]', action: t('grow') },
+    { id: 'coffee', name: t('beans'), price: 40, icon: 'fa-mug-hot', color: 'bg-[#5c4033]', action: t('brew') },
+  ], [i18n.language, t]);
 
+  // 2. DEFINE HELPER FUNCTIONS
   const saveHomeToDB = async (updatedItems: InteractiveItem[]) => {
     await supabase.from('profiles').update({ home_layout: updatedItems }).eq('id', user.id);
   };
 
+  // Load Home Data from Supabase
+  useEffect(() => {
+    const loadHome = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('home_layout')
+        .eq('id', user.id)
+        .single();
+
+      if (data?.home_layout) {
+        let needsUpdate = false;
+        
+        // SILENT MIGRATION: Map old items to include itemTypeId
+        const migratedItems = data.home_layout.map((item: any) => {
+          if (!item.itemTypeId) {
+            needsUpdate = true;
+            // Find which shop item this was based on the icon
+            const match = shopItems.find(s => s.icon === item.icon);
+            return { ...item, itemTypeId: match ? match.id : 'unknown' };
+          }
+          return item;
+        });
+
+        setItems(migratedItems);
+
+        // If we fixed anything, save the fixed version back to the DB immediately
+        if (needsUpdate) {
+          saveHomeToDB(migratedItems);
+          console.log("System: Home layout data migrated to v2 (itemTypeId added).");
+        }
+      }
+    };
+    loadHome();
+  }, [user.id, shopItems]); // Added shopItems as dependency for the matching logic
+
   const buyItem = (shopItem: any) => {
-    // 1. Check if already owned or not enough coins
-    if (items.some(i => i.name === shopItem.name)) return;
+    // FIX: Check against itemTypeId so language doesn't matter
+    if (items.some(i => i.itemTypeId === shopItem.id)) return;
     if (user.coins < shopItem.price) return;
 
-    // 2. Generate a list of ALL available empty slots
+    // Grid Logic: Find empty slots
     const emptySlots: {x: number, y: number}[] = [];
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
         const isOccupied = items.some(i => i.position.x === x && i.position.y === y);
-        if (!isOccupied) {
-          emptySlots.push({ x, y });
-        }
+        if (!isOccupied) emptySlots.push({ x, y });
       }
     }
 
-    // 3. If there are empty slots, pick one at random
     if (emptySlots.length > 0) {
       const randomIndex = Math.floor(Math.random() * emptySlots.length);
       const newPos = emptySlots[randomIndex];
@@ -59,6 +86,7 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
       
       const newItem: InteractiveItem = {
         id: crypto.randomUUID(),
+        itemTypeId: shopItem.id, // THE FIX: Persistent reference
         name: shopItem.name,
         icon: shopItem.icon,
         price: shopItem.price,
@@ -91,35 +119,15 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
         .haven-scope { image-rendering: pixelated; }
-        .haven-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
-
-        .pixel-border-social {
-          background: white;
-          border: 4px solid black;
-          box-shadow: 6px 6px 0 0 rgba(0,0,0,1);
-        }
-
-        .room-grid {
-          background-color: #f0f0f0;
-          background-image: 
-            linear-gradient(to right, #ddd 1px, transparent 1px),
-            linear-gradient(to bottom, #ddd 1px, transparent 1px);
-          background-size: 10% 10%;
-          aspect-ratio: 1 / 1; /* Keeps the room square on mobile */
-          width: 100%;
-          position: relative;
-          border: 4px solid black;
-        }
-
-        .haven-scope i {
-          font-family: "Font Awesome 6 Free" !important;
-          text-transform: none !important;
-        }
+        .haven-scope *:not(i) { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
+        .pixel-border-social { background: white; border: 4px solid black; box-shadow: 6px 6px 0 0 rgba(0,0,0,1); }
+        .room-grid { background-color: #f0f0f0; background-image: linear-gradient(to right, #ddd 1px, transparent 1px), linear-gradient(to bottom, #ddd 1px, transparent 1px); background-size: 10% 10%; aspect-ratio: 1 / 1; width: 100%; position: relative; border: 4px solid black; }
+        .haven-scope i { font-family: "Font Awesome 6 Free" !important; text-transform: none !important; font-weight: 900; }
       `}</style>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
         
-        {/* The Pixel Room (Social Theme) */}
+        {/* ROOM VIEW */}
         <div className="lg:col-span-2 pixel-border-social p-4 md:p-6 flex flex-col">
           <div className="flex items-center justify-between mb-4 text-black">
             <h2 className="text-[10px] border-b-4 border-black pb-1">{t('study_zone')}</h2>
@@ -130,16 +138,13 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
 
           <div className="room-grid">
             {items.map((item) => {
-              const shopData = shopItems.find(s => s.icon === item.icon);
+              const shopData = shopItems.find(s => s.id === item.itemTypeId);
               return (
                 <div
                   key={item.id}
                   onClick={() => upgradeItem(item.id)}
                   className={`absolute w-[10%] h-[10%] ${shopData?.color || 'bg-white'} border-2 md:border-4 border-black flex items-center justify-center cursor-pointer z-20`}
-                  style={{ 
-                    left: `${item.position.x * 10}%`, 
-                    top: `${item.position.y * 10}%` 
-                  }}
+                  style={{ left: `${item.position.x * 10}%`, top: `${item.position.y * 10}%` }}
                 >
                   <i className={`fas ${item.icon} text-white text-[10px] md:text-lg`}></i>
                   <div className="absolute -top-2 -right-2 bg-white text-black text-[6px] md:text-[8px] font-bold px-1 border-2 border-black z-30">
@@ -151,32 +156,32 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
           </div>
         </div>
 
-        {/* Pixel Shop (Social Theme) */}
+        {/* SHOP VIEW */}
         <section className="pixel-border-social p-6 h-fit lg:h-full lg:overflow-y-auto">
           <h3 className="text-center mb-6 text-[10px] text-black underline tracking-widest">{t('shop_list')}</h3>
           <div className="grid grid-cols-1 gap-4">
             {shopItems.map((item) => {
-              const owned = items.find(i => i.name === item.name);
+              // THE FIX: Use itemTypeId for the "owned" check in the UI
+              const isOwned = items.some(i => i.itemTypeId === item.id);
               return (
                 <button
                   key={item.id}
-                  disabled={!!owned}
+                  disabled={isOwned}
                   onClick={() => buyItem(item)}
-                  className={`w-full p-3 flex items-center gap-4 border-4 border-black text-black transition-all ${owned ? 'bg-gray-200 opacity-50 cursor-not-allowed' : 'bg-white active:translate-x-1 active:translate-y-1 active:shadow-none shadow-[4px_4px_0_0_rgba(0,0,0,1)]'}`}
+                  className={`w-full p-3 flex items-center gap-4 border-4 border-black text-black transition-all ${isOwned ? 'bg-gray-200 opacity-50 cursor-not-allowed' : 'bg-white active:translate-x-1 active:translate-y-1 active:shadow-none shadow-[4px_4px_0_0_rgba(0,0,0,1)]'}`}
                 >
                   <div className={`${item.color} w-10 h-10 border-2 border-black flex items-center justify-center text-white shrink-0`}>
                     <i className={`fas ${item.icon}`}></i>
                   </div>
                   <div className="text-left flex-1">
                     <p className="text-[8px] mb-1 leading-none">{item.name}</p>
-                    <p className="text-[7px] font-bold">{owned ? t('owned') : `${item.price}C`}</p>
+                    <p className="text-[7px] font-bold">{isOwned ? t('owned') : `${item.price}C`}</p>
                   </div>
                 </button>
               );
             })}
           </div>
         </section>
-
       </div>
     </div>
   );
