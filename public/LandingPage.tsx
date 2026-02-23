@@ -141,7 +141,7 @@ export const LandingPage: React.FC = () => {
             ★★★★★ Try Pixeldoro as well!
           </h2>
           <div className="space-y-6 text-[10px] leading-relaxed">
-            Different people have different approaches to problems, such as productivity. Here is another amazing productivity app I discovered that has a totally yet amazing approach to keep you focused. :) <br/> I promise, it's wonderful!
+            <p></p>Different people have different approaches to problems, such as productivity. Here is another amazing productivity app I discovered that has a totally yet amazing approach to keep you focused. :) <br/> I promise, it's wonderful! </p>
           </div>
         </div>
 
