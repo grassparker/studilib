@@ -185,7 +185,7 @@ export const LandingPage: React.FC = () => {
         {/* Text Content */}
         <div className="flex-1 text-center md:text-left">
           <h2 className="text-[12px] mb-3 text-purple-700 font-bold uppercase tracking-widest">
-            {">"} COMMUNITY_HIGHLIGHT: PIXELDORO
+            {">"} COMMUNITY_HIGHLIGHT: PIXELDORO (Dev Recommendation)
           </h2>
           <p className="text-[10px] leading-relaxed text-gray-800 uppercase font-bold mb-4">
             Different people have different approaches to productivity. 
