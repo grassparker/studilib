@@ -50,6 +50,27 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert(t('enter_email_first') || 'PLEASE ENTER EMAIL FIRST');
+      return;
+    }
+  
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+    
+      if (error) throw error;
+      alert(t('recovery_sent') || 'OVERRIDE LINK SENT TO TERMINAL (INBOX)');
+    } catch (error: any) {
+      alert(error.message || t('system_error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#FBBF24] p-4">
       <style>{`
@@ -141,6 +162,17 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
             <div>
               <label className="block text-[8px] mb-2">{t('password')}</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="pixel-input" placeholder={t('password_placeholder')} required />
+              {isLogin && (
+                <div className="mt-2 text-right">
+                  <button 
+                    type="button" 
+                    onClick={handleForgotPassword}
+                    className="text-[6px] text-gray-400 hover:text-black hover:underline cursor-pointer transition-colors uppercase tracking-widest"
+                  >
+                  [ {t('forgot_password') || 'FORGOT_ACCESS_KEY?'} ]
+                  </button>
+                </div>
+              )}
             </div>
             
             <button type="submit" disabled={loading} className="w-full pixel-btn disabled:opacity-50">
