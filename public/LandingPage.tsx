@@ -137,13 +137,6 @@ export const LandingPage: React.FC = () => {
               </li>
             </ul>
           </div>
-          <h2 className="text-[14px] mb-6 border-b-4 border-black pb-2 text-red-600 font-bold">
-            ★★★★★ Try Pixeldoro as well!
-          </h2>
-          <div className="space-y-6 text-[10px] leading-relaxed">
-            <p>Different people have different approaches to problems, such as productivity. Here is another amazing productivity app I discovered that has a totally yet amazing approach to keep you focused. :) <br/> I promise, it's wonderful! </p>
-            <p>Few words of suggestions: If you want hardcore productivity app that has pomos, tasks and calendar sync which is coming up and study with your friends, use StudiLib. If you are the type that enjoys lots of creativity while being super productive and getting into pomo competitions, use Pixeldoro! I enjoy both, so I use both. XD</p>
-          </div>
         </div>
 
         {/* Right Column: The "How" (Tutorial) */}
@@ -175,6 +168,47 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/*Pixeldoro Shoutout!*/}
+  <div className="max-w-6xl w-full mb-20 px-4">
+    <div className="terminal-card border-purple-500 shadow-[12px_12px_0_0_#a855f7] bg-[#fdf4ff]">
+      <div className="flex flex-col md:flex-row items-center gap-8">
+        <div className="flex-shrink-0 relative group">
+          <div className="w-20 h-20 bg-white border-4 border-black flex items-center justify-center text-4xl group-hover:scale-110 transition-transform cursor-default">
+            🍅
+          </div>
+          <div className="absolute -top-3 -right-3 bg-red-500 text-white text-[8px] px-2 py-1 border-2 border-black rotate-12">
+            FAV!
+          </div>
+        </div>
+
+        {/* Text Content */}
+        <div className="flex-1 text-center md:text-left">
+          <h2 className="text-[12px] mb-3 text-purple-700 font-bold uppercase tracking-widest">
+            {">"} COMMUNITY_HIGHLIGHT: PIXELDORO
+          </h2>
+          <p className="text-[10px] leading-relaxed text-gray-800 uppercase font-bold mb-4">
+            Different people have different approaches to productivity. 
+            The <span className="bg-purple-200 px-1">Pixeldoro</span> crew has built an amazingly wholesome community and a unique focus system. I promise, it's wonderful!
+          </p>
+          <div className="flex justify-center md:justify-start gap-4 text-[8px] opacity-70">
+            <span>DEVS_APPROVED: [YES]</span>
+            <span>VIBE_CHECK: [WHOLESOME]</span>
+          </div>
+        </div>
+
+        {/* Call to Action */}
+        <a 
+          href="https://pixeldoro.io" 
+          target="_blank"
+          rel="noreferrer"
+          className="bg-black text-white pixel-border px-8 py-4 text-[10px] hover:bg-purple-700 transition-all active:translate-y-1 active:shadow-none font-bold whitespace-nowrap"
+        >
+          VISIT_PIXELDORO
+        </a>
+      </div>
+    </div>
+  </div>
 
       {/* Footer Info */}
       <div className="mt-auto pb-10 text-[8px] opacity-60 flex flex-col items-center gap-4">
