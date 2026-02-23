@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 import '../../index.css';
+import { Achievements } from './Achievements';
 
 interface ProfileModalProps {
     isOpen: boolean;
@@ -21,6 +22,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
     
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    
 
     useEffect(() => {
         const fetchLiveStats = async () => {
@@ -43,6 +45,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                 totalMinsToday = sessionData.reduce((acc, curr) => acc + (Number(curr.time) || 0), 0);
                 setTotalFocusMinutes(totalMinsToday);
             }
+            
 
             // 2. FETCH PROFILE & HANDLE STREAK LOGIC
             const { data: profileData } = await supabase
@@ -68,12 +71,13 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                 const diff = today - lastPomoDate;
                 let updatedStreak = profileData.weekly_streak || 0;
 
-                // If user finished a session today AND hasn't updated streak today
-                if (totalMinsToday > 0 && diff !== 0) {
-                    if (diff === oneDayMs) {
-                        updatedStreak += 1; // Studied yesterday? Streak continues!
-                    } else {
-                        updatedStreak = 1; // Missed a day? Reset to 1.
+                if (totalMinsToday > 0) {
+                    if (lastPomoDate < today) {
+                        if (diff === oneDayMs) {
+                            updatedStreak += 1;
+                        } else {
+                            updatedStreak = 1;
+                        }
                     }
 
                     // Update database immediately
@@ -81,7 +85,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                         .from('profiles')
                         .update({ 
                             weekly_streak: updatedStreak, 
-                            last_pomo_at: now.toISOString() 
+                            last_pomo_at: new Date().toISOString() 
                         })
                         .eq('id', user.id);
                 } 
@@ -135,7 +139,17 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
                 @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
-                .profile-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
+                /* Change this line in your ProfileModal <style> tag */
+                .profile-scope *:not(i) { 
+                    font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; 
+                    text-transform: uppercase; 
+                }
+
+                /* Ensure icons can still use their own font */
+                .profile-scope i {
+                    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif !important;
+                    font-weight: 900;
+                }
                 .terminal-modal { background: #1a1a1a; border: 4px solid #333; color: #00ff00; }
                 .stat-box { border: 2px solid #333; background: #111; padding: 15px; }
                 .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 20px; padding: 2px; }
@@ -150,7 +164,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                 <h1 className="text-[12px] mb-10 text-[#ffaa00] border-b-2 border-[#333] pb-4">
                     {t('user_profile')} // ID_{user.id.substring(0,8)}
                 </h1>
-
+                {/*Progress report */}
                 <div className="stat-box mb-8">
                     <h2 className="text-[8px] text-[#00ff00] mb-6 tracking-widest">{">"} {t('progress_report')}</h2>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-center">
@@ -159,11 +173,19 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                         <div><p className="text-[6px] text-slate-500 mb-2">{t('streak')}</p><p className="text-[10px] text-[#ffaa00]">{streak}D</p></div>
                         <div><p className="text-[6px] text-slate-500 mb-2">{t('quota')}</p><p className="text-[10px] text-white">{rawPercent}%</p></div>
                     </div>
+
                     <div className="xp-bar-container">
                         <div className="h-full xp-bar-fill" style={{ width: `${barWidth}%` }} />
                     </div>
                 </div>
-
+                
+                {/*Achievements*/}
+                <div className="stat-box mb-6 border-cyan-900/50">
+                    <h2 className="text-[8px] text-cyan-400 mb-6 tracking-widest">{">"} ACHIEVEMENT_LOG</h2>
+                    <Achievements stats={{ streak, sessionCount, totalFocusMinutes }} />
+                </div>
+                
+                {/*Security */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                     <div className="stat-box">
                         <h2 className="text-[8px] mb-6 text-slate-400"># {t('identity')}</h2>

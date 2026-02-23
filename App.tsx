@@ -134,12 +134,12 @@ const App: React.FC = () => {
     <Router>
       <Routes>
         {/* Landing Page - Public */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={user ? <Navigate to="/app" replace /> : <LandingPage />} />
 
         {/* Login Page */}
         <Route 
           path="/login" 
-          element={user ? <Navigate to="/app" /> : <AuthForms onLogin={() => {}} />} 
+          element={user ? <Navigate to="/app" replace /> : <AuthForms onLogin={() => {}} />} 
         />
 
         {/* Protected App Routes */}
