@@ -129,11 +129,15 @@ export const LandingPage: React.FC = () => {
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-green-600">[✓]</span>
-                <span>Build Your Haven: Purchase and upgrade furniture for your pixel room.</span>
+                <span>Build Your Haven: Purchase and upgrade items for your inventory.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-green-600">[✓]</span>
                 <span>Track Progress: Real-time analytics for your study streaks and focus time.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="text-green-600">[✓]</span>
+                <span>Conquer tasks: Nothig is impossible to complete. Blaze through tasks and manage your time.</span>
               </li>
             </ul>
           </div>
