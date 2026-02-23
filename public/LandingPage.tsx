@@ -137,6 +137,12 @@ export const LandingPage: React.FC = () => {
               </li>
             </ul>
           </div>
+          <h2 className="text-[14px] mb-6 border-b-4 border-black pb-2 text-red-600 font-bold">
+            ★★★★★ Try Pixeldoro as well!
+          </h2>
+          <div className="space-y-6 text-[10px] leading-relaxed">
+            Different people have different approaches to problems, such as productivity. Here is another amazing productivity app I discovered that has a totally yet amazing approach to keep you focused. :) <br/> I promise, it's wonderful!
+          </div>
         </div>
 
         {/* Right Column: The "How" (Tutorial) */}
@@ -161,6 +167,10 @@ export const LandingPage: React.FC = () => {
                 <span className="text-xl">04</span>
                 <p>ACHIEVE: Unlock medals for consistency and focus milestones.</p>
             </div>
+            <div className="flex gap-4 items-center bg-gray-100 p-3 border-2 border-black">
+                <span className="text-xl">Try something new?</span>
+                <p>Requestion new features and sign up for the waitlist. :D</p>
+            </div
           </div>
         </div>
       </div>
