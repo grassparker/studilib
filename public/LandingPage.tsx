@@ -171,7 +171,7 @@ export const LandingPage: React.FC = () => {
             <div className="flex gap-4 items-center bg-gray-100 p-3 border-2 border-black">
                 <span className="text-xl">Try something new?</span>
                 <p>Requestion new features and sign up for the waitlist. :D</p>
-            </div
+            </div>
           </div>
         </div>
       </div>
