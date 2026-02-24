@@ -14,12 +14,14 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-
+  
+  //Changes language
   const toggleLanguage = () => {
     const newLang = i18n.language === 'EN' ? 'ZH' : 'EN';
     i18n.changeLanguage(newLang);
   };
 
+  //Submit the form and sign up
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -50,6 +52,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
     }
   };
 
+  //When you forget password: WARNING! This section will be changed as the sent email logs the user in instead of actually resetting the password
   const handleForgotPassword = async () => {
     if (!email) {
       alert(t('enter_email_first') || 'PLEASE ENTER EMAIL FIRST');
@@ -169,7 +172,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
                     onClick={handleForgotPassword}
                     className="text-[6px] text-gray-400 hover:text-black hover:underline cursor-pointer transition-colors uppercase tracking-widest"
                   >
-                  [ {t('forgot_password') || 'FORGOT_ACCESS_KEY?'} ]
+                  [ {t('FORGOT_ACCESS_KEY')} ]
                   </button>
                 </div>
               )}
