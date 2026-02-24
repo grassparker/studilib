@@ -182,7 +182,10 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                 {/*Achievements*/}
                 <div className="stat-box mb-6 border-cyan-900/50">
                     <h2 className="text-[8px] text-cyan-400 mb-6 tracking-widest">{">"} ACHIEVEMENT_LOG</h2>
-                    <Achievements stats={{ streak, sessionCount, totalFocusMinutes }} />
+                    <Achievements 
+                        stats={{ streak, sessionCount, totalFocusMinutes }} 
+                        userId={user.id} 
+                    />
                 </div>
                 
                 {/*Security */}

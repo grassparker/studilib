@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 import '../../index.css';
+import FriendsProfile from './FriendsProfile';
 
 export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const { t } = useTranslation();
@@ -11,12 +12,13 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     fetchFriendsAndRequests();
 
-    // --- REAL-TIME PRESENCE LOGIC ---
-    // This creates a "Room" that tracks who is currently active
+    //Check which friend is present
     const channel = supabase.channel('online-players', {
       config: {
         presence: {
@@ -83,6 +85,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
+  //Search friends
   const handleSearch = async () => {
     const { data } = await supabase
       .from('profiles')
@@ -106,6 +109,13 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
     await supabase.from('friendships').update({ status: 'accepted' }).eq('user_id', requesterId).eq('friend_id', user.id);
     await supabase.from('friendships').insert([{ user_id: user.id, friend_id: requesterId, status: 'accepted' }]);
     fetchFriendsAndRequests();
+  };
+
+  //Opens friend
+  const handleOpenProfile = (friend: any) => {
+    console.log('Friend clicked:', friend);
+    setSelectedFriend(friend);
+    setIsProfileOpen(true);
   };
 
   return (
@@ -226,7 +236,11 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
           {friends.length > 0 ? friends.map(friend => {
             const isOnline = onlineUsers.includes(friend.id);
             return (
-              <div key={friend.id} className="flex items-center gap-6 p-6 border-4 border-slate-200 hover:border-black transition-all bg-white group shadow-[4px_4px_0_0_#eee] hover:shadow-[4px_4px_0_0_#000]">
+              <div 
+                key={friend.id} 
+                onClick={() => handleOpenProfile(friend)}
+                className="flex items-center gap-6 p-6 border-4 border-slate-200 hover:border-black transition-all bg-white group shadow-[4px_4px_0_0_#eee] hover:shadow-[4px_4px_0_0_#000] cursor-pointer"
+              >
                 <div className="relative">
                     <img src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} className="pixel-avatar" />
                     {/* DYNAMIC STATUS BOX */}
@@ -246,6 +260,18 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
           )}
         </div>
       </section>
+
+      {/* FRIENDS PROFILE MODAL */}
+      {selectedFriend && (
+        <FriendsProfile 
+          isOpen={isProfileOpen} 
+          onClose={() => {
+            setIsProfileOpen(false);
+            setSelectedFriend(null);
+          }} 
+          user={selectedFriend} 
+        />
+      )}
     </div>
   );
 };

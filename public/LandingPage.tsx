@@ -86,7 +86,7 @@ export const LandingPage: React.FC = () => {
           <div className="scanline"></div>
           <h1 className="text-4xl md:text-7xl mb-4 tracking-tighter">STUDILIB</h1>
           <p className="text-[10px] md:text-[14px] leading-relaxed opacity-80 uppercase font-bold">
-            {t('landing_tagline') || 'Gamified Productivity for the Next-Gen Student.'}
+            {t('Welcome!')}
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export const LandingPage: React.FC = () => {
             onClick={handleBootClick} // FIXED: Added the click handler
             className="bg-black text-amber-400 pixel-border px-8 py-4 text-[12px] hover:bg-gray-900 transition-all active:translate-y-1 active:shadow-none font-bold uppercase animate-bop"
           >
-            {t('boot_system') || '[ BOOT_SYSTEM ]'}
+            {t('GET STARTED')}
           </button>
           
           <a 
