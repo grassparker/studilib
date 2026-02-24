@@ -12,6 +12,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
 
   // --- STATE: DATA LISTS ---
   const [friends, setFriends] = useState<any[]>([]);
@@ -52,7 +53,6 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
 
   // --- DATA FETCHING ---
   const fetchFriendsAndRequests = async () => {
-    // 1. Fetch Friends
     const { data: friendshipData } = await supabase
       .from('friendships')
       .select('friend_id')
@@ -67,7 +67,6 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
       if (profiles) setFriends(profiles);
     }
 
-    // 2. Fetch Pending Requests
     const { data: idList } = await supabase
       .from('friendships')
       .select('user_id')
@@ -102,6 +101,8 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
         .in('id', groupIds);
       
       if (groupDetails) setGroups(groupDetails);
+    } else {
+      setGroups([]);
     }
   };
 
@@ -168,7 +169,42 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
-  // --- RENDER ---
+  const kickMember = async (groupId: string, memberId: string) => {
+    if (!window.confirm("ARE YOU SURE YOU WANT TO REMOVE THIS PLAYER FROM THE GUILD?")) return;
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('user_id', memberId);
+
+    if (error) alert("FAILED TO KICK MEMBER");
+    else fetchGroups();
+  };
+
+  const leaveGroup = async (groupId: string) => {
+    if (!window.confirm("DO YOU REALLY WANT TO LEAVE THIS GUILD?")) return;
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('user_id', user.id);
+
+    if (error) alert("FAILED TO LEAVE GUILD");
+    else fetchGroups();
+  };
+
+  const deleteGroup = async (groupId: string) => {
+    if (!window.confirm("WARNING: THIS WILL PERMANENTLY DELETE THE GUILD. CONTINUE?")) return;
+    const { error } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', groupId)
+      .eq('creator_id', user.id);
+
+    if (error) alert("FAILED TO DELETE GUILD");
+    else fetchGroups();
+  };
+
   return (
     <div className="social-scope max-w-4xl mx-auto space-y-8 p-4 overflow-hidden">
       
@@ -245,21 +281,34 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
           {friends.length > 0 ? friends.map(friend => {
             const isOnline = onlineUsers.includes(friend.id);
             return (
-              <div 
-                key={friend.id} 
-                onClick={() => handleOpenProfile(friend)}
-                className="flex items-center gap-6 p-6 border-4 border-slate-200 hover:border-black transition-all bg-white group shadow-[4px_4px_0_0_#eee] hover:shadow-[4px_4px_0_0_#000] cursor-pointer"
-              >
-                <div className="relative">
-                    <img src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} className="pixel-avatar" />
-                    <div className={`absolute -bottom-2 -right-2 w-6 h-6 border-4 border-black transition-colors ${isOnline ? 'bg-[#00ff00]' : 'bg-[#94a3b8]'}`}></div>
+              <div key={friend.id} className="flex flex-col border-4 border-slate-200 bg-white shadow-[4px_4px_0_0_#eee] hover:shadow-[4px_4px_0_0_#000] hover:border-black transition-all">
+                <div onClick={() => handleOpenProfile(friend)} className="flex items-center gap-6 p-6 cursor-pointer">
+                  <div className="relative">
+                      <img src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} className="pixel-avatar" />
+                      <div className={`absolute -bottom-2 -right-2 w-6 h-6 border-4 border-black transition-colors ${isOnline ? 'bg-[#00ff00]' : 'bg-[#94a3b8]'}`}></div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold">{friend.username}</p>
+                    <p className={`text-[7px] mt-3 flex items-center gap-2 ${isOnline ? 'text-blue-600' : 'text-slate-400'}`}>
+                      <i className={`fas ${isOnline ? 'fa-bolt' : 'fa-moon'}`}></i>
+                      {isOnline ? t('status_active') : t('status_sleeping')}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold">{friend.username}</p>
-                  <p className={`text-[7px] mt-3 flex items-center gap-2 ${isOnline ? 'text-blue-600' : 'text-slate-400'}`}>
-                    <i className={`fas ${isOnline ? 'fa-bolt' : 'fa-moon'}`}></i>
-                    {isOnline ? t('status_active') : t('status_sleeping')}
-                  </p>
+                <div className="px-6 pb-6 pt-0">
+                  <select 
+                    className="pixel-input-field !py-1 !text-[8px] !h-auto"
+                    defaultValue=""
+                    onChange={(e) => {
+                      if(e.target.value) {
+                        addToGroup(e.target.value, friend.id);
+                        e.target.value = "";
+                      }
+                    }}
+                  >
+                    <option value="" disabled>+ {t('invite_to_guild')}</option>
+                    {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+                  </select>
                 </div>
               </div>
             );
@@ -273,45 +322,85 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
       <section className="pixel-box-white border-blue-500">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-[12px] underline decoration-double">{t('your_guilds')}</h2>
-          <button 
-            onClick={() => setIsCreatingGroup(!isCreatingGroup)} 
-            className="pixel-btn-action bg-blue-400"
-          >
+          <button onClick={() => setIsCreatingGroup(!isCreatingGroup)} className="pixel-btn-action bg-blue-400">
             {isCreatingGroup ? '[X]' : t('create_group')}
           </button>
         </div>
 
         {isCreatingGroup && (
           <div className="mb-8 p-4 border-4 border-dashed border-blue-400 flex gap-4">
-            <input 
-              className="pixel-input-field" 
-              placeholder="GUILD_NAME..." 
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-            />
+            <input className="pixel-input-field" placeholder="GUILD_NAME..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
             <button onClick={createGroup} className="pixel-btn-action bg-green-400">{t('confirm')}</button>
           </div>
         )}
 
         <div className="space-y-4">
-          {groups.map(group => (
-            <div key={group.id} className="border-4 border-black p-4 bg-slate-50">
-              <div className="flex justify-between items-center mb-4">
-                <p className="text-[10px] font-bold text-blue-700"># {group.name}</p>
-                <span className="text-[7px] text-slate-400">{group.group_members?.length} MEMBERS</span>
+          {groups.map(group => {
+            const isExpanded = expandedGroupId === group.id;
+            return (
+              <div 
+                key={group.id} 
+                className={`border-4 border-black p-4 transition-all cursor-pointer ${isExpanded ? 'bg-blue-50' : 'bg-slate-50'}`}
+                onClick={() => setExpandedGroupId(isExpanded ? null : group.id)}
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-[10px] font-bold text-blue-700"># {group.name}</p>
+                    <span className="text-[7px] text-slate-400">{group.group_members?.length} MEMBERS</span>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    {/* DELETE BUTTON (Leader Only) */}
+                    {group.creator_id === user.id && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); deleteGroup(group.id); }}
+                        className="text-[8px] border-2 border-red-500 bg-white text-red-500 px-2 py-1 hover:bg-red-50"
+                      >
+                        [DELETE]
+                      </button>
+                    )}
+                    {/* LEAVE BUTTON (Members Only) */}
+                    {group.creator_id !== user.id && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); leaveGroup(group.id); }}
+                        className="text-[8px] border-2 border-black bg-slate-200 px-2 py-1 hover:bg-white"
+                      >
+                        {t('leave')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex -space-x-2 mb-2">
+                  {group.group_members?.map((m: any) => (
+                    <img key={m.user_id} title={m.profiles?.username} src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.profiles?.username}`} className="w-8 h-8 border-2 border-black bg-white" />
+                  ))}
+                </div>
+
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t-2 border-dashed border-slate-300 space-y-2">
+                    {group.group_members?.map((m: any) => (
+                      <div key={m.user_id} className="flex items-center justify-between text-[8px]">
+                        <div className="flex items-center gap-2">
+                          <span>• {m.profiles?.username}</span>
+                          {group.creator_id === m.user_id && <span className="text-[6px] text-amber-600">[GUILD_LEADER]</span>}
+                        </div>
+                        {/* KICK BUTTON (Leader Only) */}
+                        {group.creator_id === user.id && m.user_id !== user.id && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); kickMember(group.id, m.user_id); }}
+                            className="text-red-500 hover:bg-red-50 px-1 border border-red-500"
+                          >
+                            [KICK]
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex -space-x-2">
-                {group.group_members?.map((m: any) => (
-                  <img 
-                    key={m.user_id}
-                    title={m.profiles?.username}
-                    src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.profiles?.username}`} 
-                    className="w-8 h-8 border-2 border-black bg-white"
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -319,10 +408,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
       {selectedFriend && (
         <FriendsProfile 
           isOpen={isProfileOpen} 
-          onClose={() => {
-            setIsProfileOpen(false);
-            setSelectedFriend(null);
-          }} 
+          onClose={() => { setIsProfileOpen(false); setSelectedFriend(null); }} 
           user={selectedFriend} 
         />
       )}
