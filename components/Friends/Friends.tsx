@@ -4,9 +4,11 @@ import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
 import '../../index.css';
 import FriendsProfile from './FriendsProfile';
+import { useNavigate } from 'react-router-dom';
 
 export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   // --- STATE: UI & MODALS ---
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -25,11 +27,71 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const [searchEmail, setSearchEmail] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
 
-  // --- EFFECTS: INITIALIZATION & REALTIME ---
+  // --- DATA FETCHING (The "Refresh" logic) ---
+  const fetchFriendsAndRequests = useCallback(async () => {
+    // 1. Fetch accepted friends
+    const { data: friendshipData } = await supabase
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', user.id)
+      .eq('status', 'accepted');
+
+    if (friendshipData && friendshipData.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', friendshipData.map(f => f.friend_id));
+      if (profiles) setFriends(profiles);
+    } else {
+      setFriends([]);
+    }
+
+    // 2. Fetch pending requests
+    const { data: idList } = await supabase
+      .from('friendships')
+      .select('user_id')
+      .eq('friend_id', user.id)
+      .eq('status', 'pending');
+
+    if (idList && idList.length > 0) {
+      const { data: requesterProfiles } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', idList.map(item => item.user_id));
+
+      if (requesterProfiles) {
+        setPendingRequests(requesterProfiles.map(p => ({ user_id: p.id, profiles: p })));
+      }
+    } else {
+      setPendingRequests([]);
+    }
+  }, [user.id]);
+
+  const fetchGroups = useCallback(async () => {
+    const { data: memberOf } = await supabase
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', user.id);
+
+    if (memberOf && memberOf.length > 0) {
+      const groupIds = memberOf.map(m => m.group_id);
+      const { data: groupDetails } = await supabase
+        .from('groups')
+        .select('*, group_members(user_id, profiles(username, avatar_url))')
+        .in('id', groupIds);
+      
+      if (groupDetails) setGroups(groupDetails);
+    } else {
+      setGroups([]);
+    }
+  }, [user.id]);
+
+  // --- EFFECTS ---
   useEffect(() => {
     fetchFriendsAndRequests();
     fetchGroups();
 
+    // Realtime Presence Setup
     const channel = supabase.channel('online-players', {
       config: { presence: { key: user.id } },
     });
@@ -49,64 +111,9 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
       });
 
     return () => { channel.unsubscribe(); };
-  }, [user.id]);
+  }, [user.id, fetchFriendsAndRequests, fetchGroups]);
 
-  // --- DATA FETCHING ---
-  const fetchFriendsAndRequests = async () => {
-    const { data: friendshipData } = await supabase
-      .from('friendships')
-      .select('friend_id')
-      .eq('user_id', user.id)
-      .eq('status', 'accepted');
-
-    if (friendshipData && friendshipData.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', friendshipData.map(f => f.friend_id));
-      if (profiles) setFriends(profiles);
-    }
-
-    const { data: idList } = await supabase
-      .from('friendships')
-      .select('user_id')
-      .eq('friend_id', user.id)
-      .eq('status', 'pending');
-
-    if (idList && idList.length > 0) {
-      const { data: requesterProfiles } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .in('id', idList.map(item => item.user_id));
-
-      if (requesterProfiles) {
-        setPendingRequests(requesterProfiles.map(p => ({ user_id: p.id, profiles: p })));
-      }
-    } else {
-      setPendingRequests([]);
-    }
-  };
-
-  const fetchGroups = async () => {
-    const { data: memberOf } = await supabase
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', user.id);
-
-    if (memberOf && memberOf.length > 0) {
-      const groupIds = memberOf.map(m => m.group_id);
-      const { data: groupDetails } = await supabase
-        .from('groups')
-        .select('*, group_members(user_id, profiles(username, avatar_url))')
-        .in('id', groupIds);
-      
-      if (groupDetails) setGroups(groupDetails);
-    } else {
-      setGroups([]);
-    }
-  };
-
-  // --- ACTIONS: FRIENDS ---
+  // --- ACTIONS (Now with Auto-Fetch) ---
   const handleSearch = async () => {
     const { data } = await supabase
       .from('profiles')
@@ -123,21 +130,18 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
         { user_id: user.id, friend_id: friendId, status: 'pending' }
     ]);
     if (error) alert(t('already_pending'));
-    else alert(t('request_sent'));
+    else {
+      alert(t('request_sent'));
+      fetchFriendsAndRequests(); // Update UI
+    }
   };
 
   const acceptFriend = async (requesterId: string) => {
     await supabase.from('friendships').update({ status: 'accepted' }).eq('user_id', requesterId).eq('friend_id', user.id);
     await supabase.from('friendships').insert([{ user_id: user.id, friend_id: requesterId, status: 'accepted' }]);
-    fetchFriendsAndRequests();
+    fetchFriendsAndRequests(); // Refresh the list immediately
   };
 
-  const handleOpenProfile = (friend: any) => {
-    setSelectedFriend(friend);
-    setIsProfileOpen(true);
-  };
-
-  // --- ACTIONS: GROUPS ---
   const createGroup = async () => {
     if (!newGroupName.trim()) return;
     const { data: group, error: gError } = await supabase
@@ -154,7 +158,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
 
     setNewGroupName('');
     setIsCreatingGroup(false);
-    fetchGroups();
+    fetchGroups(); // Refresh UI
   };
 
   const addToGroup = async (groupId: string, friendId: string) => {
@@ -165,44 +169,58 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
     if (error) alert("Player already in group!");
     else {
       alert("Added to party!");
-      fetchGroups();
+      fetchGroups(); // Refresh group members list
     }
   };
 
   const kickMember = async (groupId: string, memberId: string) => {
-    if (!window.confirm("ARE YOU SURE YOU WANT TO REMOVE THIS PLAYER FROM THE GUILD?")) return;
+    if (!window.confirm("ARE YOU SURE?")) return;
     const { error } = await supabase
       .from('group_members')
       .delete()
       .eq('group_id', groupId)
       .eq('user_id', memberId);
 
-    if (error) alert("FAILED TO KICK MEMBER");
-    else fetchGroups();
+    if (error) alert("FAILED TO KICK");
+    else fetchGroups(); // Refresh UI
   };
 
   const leaveGroup = async (groupId: string) => {
-    if (!window.confirm("DO YOU REALLY WANT TO LEAVE THIS GUILD?")) return;
+    if (!window.confirm("DO YOU REALLY WANT TO LEAVE?")) return;
     const { error } = await supabase
       .from('group_members')
       .delete()
       .eq('group_id', groupId)
       .eq('user_id', user.id);
 
-    if (error) alert("FAILED TO LEAVE GUILD");
-    else fetchGroups();
+    if (error) alert("FAILED TO LEAVE");
+    else {
+      setExpandedGroupId(null);
+      fetchGroups(); // Refresh UI
+    }
   };
 
   const deleteGroup = async (groupId: string) => {
-    if (!window.confirm("WARNING: THIS WILL PERMANENTLY DELETE THE GUILD. CONTINUE?")) return;
+    if (!window.confirm("DELETE PERMANENTLY?")) return;
+    // Step 1: Remove members first
+    await supabase.from('group_members').delete().eq('group_id', groupId);
+    // Step 2: Delete group
     const { error } = await supabase
       .from('groups')
       .delete()
       .eq('id', groupId)
       .eq('creator_id', user.id);
 
-    if (error) alert("FAILED TO DELETE GUILD");
-    else fetchGroups();
+    if (error) alert("FAILED TO DELETE");
+    else {
+      setExpandedGroupId(null);
+      fetchGroups(); // Refresh UI
+    }
+  };
+
+  const handleOpenProfile = (friend: any) => {
+    setSelectedFriend(friend);
+    setIsProfileOpen(true);
   };
 
   return (
@@ -211,6 +229,18 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+        /* This applies the font to everything EXCEPT <i> tags (the icons) */
+        .social-scope *:not(i) { 
+            font-family: 'Press Start 2P', 'WDXL Lubrifont SC' , monospace !important; 
+            text-transform: uppercase; 
+        }
+
+        /* This makes sure the icons keep their own font family */
+        .social-scope i {
+            font-family: "Font Awesome 6 Free" !important;
+            font-weight: 900;
+            text-transform: none !important; /* Icons shouldn't be uppercase */
+        }
         .social-scope { image-rendering: pixelated; }
         .social-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
         .pixel-box-white { border: 4px solid black; background: white; box-shadow: 8px 8px 0 0 rgba(0,0,0,0.2); padding: 24px; }
@@ -335,73 +365,57 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
         )}
 
         <div className="space-y-4">
-          {groups.map(group => {
-            const isExpanded = expandedGroupId === group.id;
-            return (
-              <div 
-                key={group.id} 
-                className={`border-4 border-black p-4 transition-all cursor-pointer ${isExpanded ? 'bg-blue-50' : 'bg-slate-50'}`}
-                onClick={() => setExpandedGroupId(isExpanded ? null : group.id)}
+  {groups.map(group => {
+    return (
+      <div 
+        key={group.id} 
+        // 3. Change this onClick to navigate!
+        onClick={() => navigate(`/guild/${group.id}`)}
+        className="border-4 border-black p-4 transition-all cursor-pointer bg-slate-50 hover:bg-blue-50 hover:translate-x-1"
+      >
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col gap-1">
+            <p className="text-[10px] font-bold text-blue-700"># {group.name}</p>
+            <span className="text-[7px] text-slate-400">{group.group_members?.length} MEMBERS</span>
+          </div>
+          
+          <div className="flex gap-2">
+            {/* IMPORTANT: Use e.stopPropagation() so clicking these buttons doesn't trigger the page navigation */}
+            {group.creator_id === user.id && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); deleteGroup(group.id); }}
+                className="text-[8px] border-2 border-red-500 bg-white text-red-500 px-2 py-1 hover:bg-red-50"
               >
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-[10px] font-bold text-blue-700"># {group.name}</p>
-                    <span className="text-[7px] text-slate-400">{group.group_members?.length} MEMBERS</span>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    {/* DELETE BUTTON (Leader Only) */}
-                    {group.creator_id === user.id && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); deleteGroup(group.id); }}
-                        className="text-[8px] border-2 border-red-500 bg-white text-red-500 px-2 py-1 hover:bg-red-50"
-                      >
-                        [DELETE]
-                      </button>
-                    )}
-                    {/* LEAVE BUTTON (Members Only) */}
-                    {group.creator_id !== user.id && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); leaveGroup(group.id); }}
-                        className="text-[8px] border-2 border-black bg-slate-200 px-2 py-1 hover:bg-white"
-                      >
-                        {t('leave')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex -space-x-2 mb-2">
-                  {group.group_members?.map((m: any) => (
-                    <img key={m.user_id} title={m.profiles?.username} src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.profiles?.username}`} className="w-8 h-8 border-2 border-black bg-white" />
-                  ))}
-                </div>
-
-                {isExpanded && (
-                  <div className="mt-4 pt-4 border-t-2 border-dashed border-slate-300 space-y-2">
-                    {group.group_members?.map((m: any) => (
-                      <div key={m.user_id} className="flex items-center justify-between text-[8px]">
-                        <div className="flex items-center gap-2">
-                          <span>• {m.profiles?.username}</span>
-                          {group.creator_id === m.user_id && <span className="text-[6px] text-amber-600">[GUILD_LEADER]</span>}
-                        </div>
-                        {/* KICK BUTTON (Leader Only) */}
-                        {group.creator_id === user.id && m.user_id !== user.id && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); kickMember(group.id, m.user_id); }}
-                            className="text-red-500 hover:bg-red-50 px-1 border border-red-500"
-                          >
-                            [KICK]
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                [DELETE]
+              </button>
+            )}
+            {group.creator_id !== user.id && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); leaveGroup(group.id); }}
+                className="text-[8px] border-2 border-black bg-slate-200 px-2 py-1 hover:bg-white"
+              >
+                {t('leave')}
+              </button>
+            )}
+          </div>
         </div>
+        
+        <div className="flex -space-x-2 mb-2">
+          {group.group_members?.map((m: any) => (
+            <img 
+              key={m.user_id} 
+              title={m.profiles?.username} 
+              src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.profiles?.username}`} 
+              className="w-8 h-8 border-2 border-black bg-white" 
+            />
+          ))}
+        </div>
+        
+        <p className="text-[6px] text-blue-400 mt-2 animate-pulse">CLICK TO ENTER GUILD HUB --&gt;</p>
+      </div>
+    );
+  })}
+</div>
       </section>
 
       {/* 5. MODALS */}

@@ -9,6 +9,7 @@ import { User } from './types';
 import ProfileModal from './components/Profile/ProfileModal';
 import { supabase } from './components/Auth/supabaseClient';
 import { LandingPage } from './public/LandingPage';
+import { GuildDetail } from './components/Friends/Guild/GuildDetail';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -140,6 +141,12 @@ const App: React.FC = () => {
         <Route 
           path="/login" 
           element={user ? <Navigate to="/app" replace /> : <AuthForms onLogin={() => {}} />} 
+        />
+
+        {/* Guild */}
+        <Route 
+          path="/guild/:id" 
+          element={user ? <GuildDetail user={user} /> : <Navigate to="/login" />} 
         />
 
         {/* Protected App Routes */}
