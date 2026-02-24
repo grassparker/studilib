@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
@@ -7,47 +7,50 @@ import FriendsProfile from './FriendsProfile';
 
 export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const { t } = useTranslation();
-  const [searchEmail, setSearchEmail] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  // --- STATE: UI & MODALS ---
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
+  // --- STATE: DATA LISTS ---
   const [friends, setFriends] = useState<any[]>([]);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-  const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+  // --- STATE: INPUTS ---
+  const [searchEmail, setSearchEmail] = useState('');
+  const [newGroupName, setNewGroupName] = useState('');
+
+  // --- EFFECTS: INITIALIZATION & REALTIME ---
   useEffect(() => {
     fetchFriendsAndRequests();
+    fetchGroups();
 
-    //Check which friend is present
     const channel = supabase.channel('online-players', {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
+      config: { presence: { key: user.id } },
     });
 
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        // Sync the online list whenever someone joins/leaves
         setOnlineUsers(Object.keys(state));
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          // Tell the world we are here!
           await channel.track({ 
             online_at: new Date().toISOString(),
-            username: user.email // optional extra data
+            username: user.email 
           });
         }
       });
 
-    return () => {
-      channel.unsubscribe();
-    };
+    return () => { channel.unsubscribe(); };
   }, [user.id]);
 
+  // --- DATA FETCHING ---
   const fetchFriendsAndRequests = async () => {
     // 1. Fetch Friends
     const { data: friendshipData } = await supabase
@@ -85,7 +88,24 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
-  //Search friends
+  const fetchGroups = async () => {
+    const { data: memberOf } = await supabase
+      .from('group_members')
+      .select('group_id')
+      .eq('user_id', user.id);
+
+    if (memberOf && memberOf.length > 0) {
+      const groupIds = memberOf.map(m => m.group_id);
+      const { data: groupDetails } = await supabase
+        .from('groups')
+        .select('*, group_members(user_id, profiles(username, avatar_url))')
+        .in('id', groupIds);
+      
+      if (groupDetails) setGroups(groupDetails);
+    }
+  };
+
+  // --- ACTIONS: FRIENDS ---
   const handleSearch = async () => {
     const { data } = await supabase
       .from('profiles')
@@ -111,72 +131,61 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
     fetchFriendsAndRequests();
   };
 
-  //Opens friend
   const handleOpenProfile = (friend: any) => {
-    console.log('Friend clicked:', friend);
     setSelectedFriend(friend);
     setIsProfileOpen(true);
   };
 
+  // --- ACTIONS: GROUPS ---
+  const createGroup = async () => {
+    if (!newGroupName.trim()) return;
+    const { data: group, error: gError } = await supabase
+      .from('groups')
+      .insert([{ name: newGroupName, creator_id: user.id }])
+      .select()
+      .single();
+
+    if (gError) return alert("Error creating group");
+
+    await supabase
+      .from('group_members')
+      .insert([{ group_id: group.id, user_id: user.id }]);
+
+    setNewGroupName('');
+    setIsCreatingGroup(false);
+    fetchGroups();
+  };
+
+  const addToGroup = async (groupId: string, friendId: string) => {
+    const { error } = await supabase
+      .from('group_members')
+      .insert([{ group_id: groupId, user_id: friendId }]);
+
+    if (error) alert("Player already in group!");
+    else {
+      alert("Added to party!");
+      fetchGroups();
+    }
+  };
+
+  // --- RENDER ---
   return (
     <div className="social-scope max-w-4xl mx-auto space-y-8 p-4 overflow-hidden">
       
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
-        
         .social-scope { image-rendering: pixelated; }
         .social-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
-
-        .pixel-box-white {
-          border: 4px solid black;
-          background: white;
-          box-shadow: 8px 8px 0 0 rgba(0,0,0,0.2);
-          padding: 24px;
-        }
-
-        .pixel-box-green {
-          border: 4px solid black;
-          background: #90ee90;
-          box-shadow: 8px 8px 0 0 #2d6a30;
-          padding: 24px;
-        }
-
-        .pixel-input-field {
-          border: 4px solid black;
-          padding: 12px;
-          background: #fff;
-          outline: none;
-          font-size: 10px;
-          width: 100%;
-        }
-
-        .pixel-btn-action {
-          border: 4px solid black;
-          background: #ffaa00;
-          padding: 12px 20px;
-          box-shadow: inset -4px -4px 0 0 #cc8800;
-          cursor: pointer;
-          font-size: 10px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .pixel-btn-action:active { 
-          box-shadow: inset 4px 4px 0 0 #cc8800;
-          transform: translateY(2px);
-        }
-
-        .pixel-avatar {
-          border: 4px solid black;
-          background: white;
-          width: 64px;
-          height: 64px;
-        }
+        .pixel-box-white { border: 4px solid black; background: white; box-shadow: 8px 8px 0 0 rgba(0,0,0,0.2); padding: 24px; }
+        .pixel-box-green { border: 4px solid black; background: #90ee90; box-shadow: 8px 8px 0 0 #2d6a30; padding: 24px; }
+        .pixel-input-field { border: 4px solid black; padding: 12px; background: #fff; outline: none; font-size: 10px; width: 100%; }
+        .pixel-btn-action { border: 4px solid black; background: #ffaa00; padding: 12px 20px; box-shadow: inset -4px -4px 0 0 #cc8800; cursor: pointer; font-size: 10px; display: flex; align-items: center; gap: 10px; }
+        .pixel-btn-action:active { box-shadow: inset 4px 4px 0 0 #cc8800; transform: translateY(2px); }
+        .pixel-avatar { border: 4px solid black; background: white; width: 64px; height: 64px; }
       `}</style>
 
-      {/* SEARCH SECTION */}
+      {/* 1. SEARCH SECTION */}
       <section className="pixel-box-white">
         <h2 className="text-[12px] mb-8 underline decoration-double">{t('search_players')}</h2>
         <div className="flex flex-col md:flex-row gap-4">
@@ -206,7 +215,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
         ))}
       </section>
 
-      {/* PENDING SECTION */}
+      {/* 2. PENDING REQUESTS */}
       {pendingRequests.length > 0 && (
         <section className="pixel-box-green">
           <h2 className="text-[12px] mb-6 text-green-900">! {t('incoming_requests')}</h2>
@@ -229,7 +238,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
         </section>
       )}
 
-      {/* FRIENDS LIST SECTION */}
+      {/* 3. FRIENDS LIST */}
       <section className="pixel-box-white">
         <h2 className="text-[12px] mb-8 underline decoration-double">{t('your_party')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -243,7 +252,6 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
               >
                 <div className="relative">
                     <img src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} className="pixel-avatar" />
-                    {/* DYNAMIC STATUS BOX */}
                     <div className={`absolute -bottom-2 -right-2 w-6 h-6 border-4 border-black transition-colors ${isOnline ? 'bg-[#00ff00]' : 'bg-[#94a3b8]'}`}></div>
                 </div>
                 <div>
@@ -261,7 +269,53 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
         </div>
       </section>
 
-      {/* FRIENDS PROFILE MODAL */}
+      {/* 4. GROUPS/GUILDS */}
+      <section className="pixel-box-white border-blue-500">
+        <div className="flex justify-between items-center mb-8">
+          <h2 className="text-[12px] underline decoration-double">{t('your_guilds')}</h2>
+          <button 
+            onClick={() => setIsCreatingGroup(!isCreatingGroup)} 
+            className="pixel-btn-action bg-blue-400"
+          >
+            {isCreatingGroup ? '[X]' : t('create_group')}
+          </button>
+        </div>
+
+        {isCreatingGroup && (
+          <div className="mb-8 p-4 border-4 border-dashed border-blue-400 flex gap-4">
+            <input 
+              className="pixel-input-field" 
+              placeholder="GUILD_NAME..." 
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+            />
+            <button onClick={createGroup} className="pixel-btn-action bg-green-400">{t('confirm')}</button>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {groups.map(group => (
+            <div key={group.id} className="border-4 border-black p-4 bg-slate-50">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-[10px] font-bold text-blue-700"># {group.name}</p>
+                <span className="text-[7px] text-slate-400">{group.group_members?.length} MEMBERS</span>
+              </div>
+              <div className="flex -space-x-2">
+                {group.group_members?.map((m: any) => (
+                  <img 
+                    key={m.user_id}
+                    title={m.profiles?.username}
+                    src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.profiles?.username}`} 
+                    className="w-8 h-8 border-2 border-black bg-white"
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 5. MODALS */}
       {selectedFriend && (
         <FriendsProfile 
           isOpen={isProfileOpen} 
