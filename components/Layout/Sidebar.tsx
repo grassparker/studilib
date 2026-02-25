@@ -37,7 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
           onClick={() => setIsOpen(!isOpen)}
           className="bg-white border-4 border-black text-black px-3 py-1 text-[8px] font-pixel shadow-[4px_4px_0_0_#000] active:translate-y-1 active:shadow-none"
         >
-          {isOpen ? t('close') : t('menu')}
+          {isOpen ? t('close') : t('OPEN MENU')}
         </button>
       </div>
 

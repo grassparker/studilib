@@ -60,50 +60,87 @@ export default function FriendsProfile({ isOpen, onClose, user }: FriendsProfile
 
     if (!isOpen) return null;
 
-    return (
-        <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+return (
+        <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-2 md:p-4">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
                 @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+                
                 .profile-scope *:not(i) { 
                     font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; 
                     text-transform: uppercase; 
                 }
-                .profile-scope i {
-                    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif !important;
-                    font-weight: 900;
+
+                /* Mobile Font Scaling */
+                @media (max-width: 640px) {
+                    .profile-scope h1 { font-size: 10px !important; }
+                    .profile-scope h2 { font-size: 7px !important; }
+                    .profile-scope p { font-size: 5px !important; }
+                    .stat-value { font-size: 8px !important; }
                 }
-                .terminal-modal { background: #1a1a1a; border: 4px solid #333; color: #00ff00; }
-                .stat-box { border: 2px solid #333; background: #111; padding: 15px; }
-                .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 20px; padding: 2px; }
+
+                .terminal-modal { 
+                    background: #1a1a1a; 
+                    border: 4px solid #333; 
+                    color: #00ff00; 
+                    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+                }
+                .stat-box { border: 2px solid #333; background: #111; padding: 12px md:padding: 15px; }
+                .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 16px; padding: 2px; }
                 .xp-bar-fill { background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.5s; }
             `}</style>
 
-            <div className="terminal-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto p-10 relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-red-500 hover:scale-110 transition-transform text-lg">[X]</button>
+            {/* Container: w-[95%] on mobile, max-w-2xl on desktop */}
+            <div className="terminal-modal w-[95%] md:w-full max-w-2xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto p-4 md:p-10 relative">
                 
-                <div className="flex items-center gap-4 mb-4">
+                {/* Close Button - Larger touch target for mobile */}
+                <button onClick={onClose} className="absolute top-2 right-2 md:top-4 md:right-4 text-red-500 p-2 text-sm md:text-lg">
+                    [X]
+                </button>
+                
+                {/* Header Section */}
+                <div className="flex items-center gap-3 md:gap-4 mb-4 mt-2">
                     <img 
                         src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} 
-                        className="w-16 h-16 border-4 border-[#333] bg-white p-1"
+                        className="w-12 h-12 md:w-16 md:h-16 border-4 border-[#333] bg-white p-1"
                         alt="avatar"
                     />
+                    <div className="overflow-hidden">
+                         <h1 className="text-[10px] md:text-[12px] text-[#ffaa00] truncate">
+                            {user.username}
+                        </h1>
+                        <span className="text-[5px] md:text-[6px] text-slate-500 block truncate">
+                            ID_{user.id.substring(0,8)}
+                        </span>
+                    </div>
                 </div>
-                <div className="mb-10 border-b-2 border-[#333] pb-4 flex justify-between items-end">
-                    <h1 className="text-[12px] text-[#ffaa00]">
-                        {user.username}'S_ENCRYPTED_DATA
-                    </h1>
-                    <span className="text-[6px] text-slate-500 tracking-tighter">ID_{user.id.substring(0,8)}</span>
+
+                <div className="mb-6 md:mb-10 border-b-2 border-[#333] pb-4">
+                    <p className="text-[6px] text-slate-400">STATUS: ACCESSING_EXTERNAL_ENCRYPTION...</p>
                 </div>
 
                 {/* Progress Report */}
-                <div className="stat-box mb-8">
-                    <h2 className="text-[8px] text-[#00ff00] mb-6 tracking-widest">{">"} LIVE_SYNC_STATS</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-center">
-                        <div><p className="text-[6px] text-slate-500 mb-2">MINS</p><p className="text-[10px] text-white">{totalFocusMinutes}</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">SESS</p><p className="text-[10px] text-white">{sessionCount}</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">STREAK</p><p className="text-[10px] text-[#ffaa00]">{streak}D</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">QUOTA</p><p className="text-[10px] text-white">{rawPercent}%</p></div>
+                <div className="stat-box mb-6 md:mb-8">
+                    <h2 className="text-[7px] md:text-[8px] text-[#00ff00] mb-4 md:mb-6 tracking-widest">{">"} LIVE_SYNC_STATS</h2>
+                    
+                    {/* Responsive Grid: 2 cols on mobile, 4 on desktop */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 text-center">
+                        <div className="bg-[#0a0a0a] p-2 border border-[#222]">
+                            <p className="text-[5px] md:text-[6px] text-slate-500 mb-1">MINS</p>
+                            <p className="stat-value text-[8px] md:text-[10px] text-white">{totalFocusMinutes}</p>
+                        </div>
+                        <div className="bg-[#0a0a0a] p-2 border border-[#222]">
+                            <p className="text-[5px] md:text-[6px] text-slate-500 mb-1">SESS</p>
+                            <p className="stat-value text-[8px] md:text-[10px] text-white">{sessionCount}</p>
+                        </div>
+                        <div className="bg-[#0a0a0a] p-2 border border-[#222]">
+                            <p className="text-[5px] md:text-[6px] text-slate-500 mb-1">STRK</p>
+                            <p className="stat-value text-[8px] md:text-[10px] text-[#ffaa00]">{streak}D</p>
+                        </div>
+                        <div className="bg-[#0a0a0a] p-2 border border-[#222]">
+                            <p className="text-[5px] md:text-[6px] text-slate-500 mb-1">QUOTA</p>
+                            <p className="stat-value text-[8px] md:text-[10px] text-white">{rawPercent}%</p>
+                        </div>
                     </div>
 
                     <div className="xp-bar-container">
@@ -113,17 +150,18 @@ export default function FriendsProfile({ isOpen, onClose, user }: FriendsProfile
                 
                 {/* Achievements */}
                 <div className="stat-box mb-6 border-cyan-900/50">
-                    <h2 className="text-[8px] text-cyan-400 mb-6 tracking-widest">{">"} FRIEND_ACHIEVEMENT_LOG</h2>
-                    <Achievements 
-                        stats={{ streak, sessionCount, totalFocusMinutes }} 
-                        userId={user.id}  // <--- ADD THIS LINE
-                    />
+                    <h2 className="text-[7px] md:text-[8px] text-cyan-400 mb-4 md:mb-6 tracking-widest">{">"} ACHIEVEMENT_LOG</h2>
+                    <div className="overflow-x-auto">
+                        <Achievements 
+                            stats={{ streak, sessionCount, totalFocusMinutes }} 
+                            userId={user.id} 
+                        />
+                    </div>
                 </div>
 
-                <div className="text-center opacity-30 mt-4">
-                    <p className="text-[6px]">-- END_OF_TRANSMISSION --</p>
+                <div className="text-center opacity-30 mt-4 pb-2">
+                    <p className="text-[5px] md:text-[6px]">-- END_OF_TRANSMISSION --</p>
                 </div>
-                
             </div>
         </div>
     );
