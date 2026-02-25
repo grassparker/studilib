@@ -19,15 +19,16 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // --- 1. DATA FETCHING ---
+  // --- 1. AUTH & DATA FETCHING ---
   useEffect(() => {
     let isMounted = true;
 
     const fetchProfileData = async (userId: string) => {
-      const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
       if (isMounted && data) {
         setUser(prev => ({ ...prev, ...data } as any));
       }
+      if (error) console.error("Error fetching profile:", error.message);
     };
 
     const initAuth = async () => {
@@ -35,8 +36,13 @@ const App: React.FC = () => {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Auth error:', error);
-          if (isMounted) setIsLoading(false);
+          // This catches the "Invalid Refresh Token" error
+          console.error('Auth init error:', error.message);
+          await supabase.auth.signOut(); // Clear stale cookies/tokens
+          if (isMounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
           return;
         }
 
@@ -45,31 +51,28 @@ const App: React.FC = () => {
             setUser(session.user as any);
             await fetchProfileData(session.user.id);
           }
-        } else {
-          if (isMounted) {
-            setUser(null);
-          }
         }
-
         if (isMounted) setIsLoading(false);
       } catch (err) {
-        console.error('Auth init error:', err);
+        console.error('Unexpected Auth Error:', err);
         if (isMounted) setIsLoading(false);
       }
     };
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
+    // HANDSHAKE LINKAGE: Listens for Login/Logout/Token Expiry
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
         if (isMounted) {
           setUser(session.user as any);
           fetchProfileData(session.user.id);
         }
-      } else {
-        if (isMounted) {
-          setUser(null);
-        }
+      } else if (event === 'SIGNED_OUT') {
+        if (isMounted) setUser(null);
+      } else if (event === 'TOKEN_REFRESHED' === false && !session) {
+        // Handle session expiration or invalid refresh tokens
+        if (isMounted) setUser(null);
       }
     });
 
@@ -90,28 +93,19 @@ const App: React.FC = () => {
   };
 
   const handleProfileUpdate = (updatedData: any) => {
-    setUser((prev) => {
-      if (!prev) return null;
-      return { ...prev, ...updatedData };
-    });
+    setUser((prev) => (prev ? { ...prev, ...updatedData } : null));
   };
 
   const updateCoins = async (amount: number) => {
     if (!user) return;
     const newCount = (user.coins || 0) + amount;
     
-    setUser((prev) => {
-      if (!prev) return null;
-      return { ...prev, coins: newCount };
-    });
+    setUser((prev) => (prev ? { ...prev, coins: newCount } : null));
 
-    await supabase
-      .from('profiles')
-      .update({ coins: newCount })
-      .eq('id', user.id);
+    await supabase.from('profiles').update({ coins: newCount }).eq('id', user.id);
   };
 
-  // --- 2. LOADING SCREEN ---
+  // --- 2. LOADING SCREEN (The "Boot" Protocol) ---
   if (isLoading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-[#FBBF24]">
@@ -125,33 +119,44 @@ const App: React.FC = () => {
             box-shadow: 10px 10px 0 0 rgba(0,0,0,1);
           }
         `}</style>
-        <div className="pixel-box p-8 animate-pulse">
-          <p className="pixel-font text-[10px] tracking-widest text-black">{t('loading_os')}</p>
+        <div className="pixel-box p-8 animate-pulse text-center">
+          <p className="pixel-font text-[10px] tracking-widest text-black mb-4">
+            {t('loading_os') || "SYSTEM_BOOTING..."}
+          </p>
+          <div className="w-full bg-gray-200 h-4 border-2 border-black">
+            <div className="bg-black h-full animate-[loading_2s_ease-in-out_infinite]" style={{width: '60%'}}></div>
+          </div>
         </div>
       </div>
     );
   }
 
+  // --- 3. THE ROUTER MAP ---
   return (
     <Router>
       <Routes>
-        {/* Landing Page - Public */}
-        <Route path="/" element={user ? <Navigate to="/app" replace /> : <LandingPage />} />
+        {/* PUBLIC ACCESS: Always available for SEO and Users */}
         <Route path="/updates" element={<UpdatesPage />} />
 
-        {/* Login Page */}
+        {/* LANDING PAGE: Logic to skip if already logged in */}
+        <Route 
+          path="/" 
+          element={user ? <Navigate to="/app" replace /> : <LandingPage />} 
+        />
+
+        {/* AUTH: Forced redirect if logged in */}
         <Route 
           path="/login" 
           element={user ? <Navigate to="/app" replace /> : <AuthForms onLogin={() => {}} />} 
         />
 
-        {/* Guild */}
+        {/* GUILD DETAIL: Protected */}
         <Route 
           path="/guild/:id" 
           element={user ? <GuildDetail user={user} /> : <Navigate to="/login" />} 
         />
 
-        {/* Protected App Routes */}
+        {/* PROTECTED DASHBOARD AREA */}
         <Route 
           path="/app" 
           element={
@@ -160,15 +165,10 @@ const App: React.FC = () => {
             ) : (
               <div className="flex h-screen bg-[#f0f0f0] overflow-hidden">
                 <style>{`
-                  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-                  @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
                   * { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
-                  
-                  /* Custom Scrollbar for Pixel Look */
                   ::-webkit-scrollbar { width: 12px; }
                   ::-webkit-scrollbar-track { background: #eee; border-left: 4px solid black; }
                   ::-webkit-scrollbar-thumb { background: black; border: 2px solid white; }
-                  
                   .main-content-area {
                     background-image: radial-gradient(#d1d5db 1px, transparent 1px);
                     background-size: 20px 20px;
@@ -182,7 +182,6 @@ const App: React.FC = () => {
                 />
                 
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden border-l-4 border-black">
-                  
                   <TopBar 
                     user={user} 
                     onAvatarClick={() => setIsProfileOpen(true)} 
@@ -207,7 +206,9 @@ const App: React.FC = () => {
 
                   {/* SYSTEM STATUS BAR */}
                   <footer className="h-8 bg-black text-white flex items-center px-4 justify-between">
-                    <span className="text-[6px] uppercase tracking-[0.2em]">{t('system_stable')}</span>
+                    <span className="text-[6px] uppercase tracking-[0.2em]">
+                      {t('system_stable')}
+                    </span>
                     <div className="flex gap-4">
                       <span className="text-[6px] uppercase">{t('region')}</span>
                       <button 
@@ -224,7 +225,7 @@ const App: React.FC = () => {
           } 
         />
 
-        {/* Catch all - redirect to home */}
+        {/* CATCH-ALL REDIRECT */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
