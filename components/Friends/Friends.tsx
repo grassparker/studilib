@@ -145,7 +145,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
     <div className="social-scope max-w-4xl mx-auto space-y-8 p-4 overflow-hidden">
       
       <style>{`
-        .social-scope *:not(i) { font-family: 'Press Start 2P', 'WDXL Lubrifont SC' , monospace !important; text-transform: uppercase; }
+        .social-scope *:not(i) { font-family: 'Press Start 2P', 'LXGW WenKai TC' , monospace !important; text-transform: uppercase; }
         .social-scope i { font-family: "Font Awesome 6 Free" !important; font-weight: 900; text-transform: none !important; }
         .pixel-box-white { border: 4px solid black; background: white; box-shadow: 8px 8px 0 0 rgba(0,0,0,0.2); padding: 20px; }
         .pixel-box-green { border: 4px solid black; background: #90ee90; box-shadow: 8px 8px 0 0 #2d6a30; padding: 20px; }

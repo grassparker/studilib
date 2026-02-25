@@ -1,0 +1,26 @@
+[
+  {
+    "id": "v1.2.0",
+    "date": "2026-02-25",
+    "type": "FEATURE",
+    "title": "Guild, Achievements and Friends",
+    "content": "Now users can create guilds, manage the people and chat with the people in the guids. The pomodoro has been optimised as well. The pomodoro timer will be saved automatically even when you are away. Within 30 minutes of finishing, you can get both coins and the time stats. Otherwise you only get stats. So make sure to come back! :)",
+    "tags": ["SOCIAL", "REALTIME", "TIMER"]
+  },
+  {
+    "id": "v1.1.5",
+    "date": "2026-02-20",
+    "type": "FIX",
+    "title": "AVATAR_SQUASH_HOTFIX",
+    "content": "Patched all of the the bugs reported by the beta testers: Chinese toggle, Tiny Haven crowded furniture, pomodoro and friends bugs.",
+    "tags": ["UI", "MOBILE"]
+  },
+  {
+    "id": "v1.1.0",
+    "date": "2026-02-20",
+    "type": "CORE",
+    "title": "POMODORO_SYSTEM_BOOT",
+    "content": "The app is launched with its basic features such as pomodoro, adding tasks, adding calendar events and the tiny haven.",
+    "tags": ["ECONOMY", "TIMER"]
+  }
+]

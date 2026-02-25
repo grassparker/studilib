@@ -117,9 +117,9 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
       
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
         .haven-scope { image-rendering: pixelated; }
-        .haven-scope *:not(i) { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
+        .haven-scope *:not(i) { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; text-transform: uppercase; }
         .pixel-border-social { background: white; border: 4px solid black; box-shadow: 6px 6px 0 0 rgba(0,0,0,1); }
         .room-grid { background-color: #f0f0f0; background-image: linear-gradient(to right, #ddd 1px, transparent 1px), linear-gradient(to bottom, #ddd 1px, transparent 1px); background-size: 10% 10%; aspect-ratio: 1 / 1; width: 100%; position: relative; border: 4px solid black; }
         .haven-scope i { font-family: "Font Awesome 6 Free" !important; text-transform: none !important; font-weight: 900; }

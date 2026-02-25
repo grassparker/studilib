@@ -120,8 +120,8 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
     <div className="schedule-scope space-y-8 p-4 max-w-4xl mx-auto pb-32">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
-        .schedule-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
+        @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
+        .schedule-scope * { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; text-transform: uppercase; }
         
         .party-panel {
           background: white;

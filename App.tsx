@@ -10,6 +10,7 @@ import ProfileModal from './components/Profile/ProfileModal';
 import { supabase } from './components/Auth/supabaseClient';
 import { LandingPage } from './public/LandingPage';
 import { GuildDetail } from './components/Friends/Guild/GuildDetail';
+import { UpdatesPage } from './public/Updates';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -116,8 +117,8 @@ const App: React.FC = () => {
       <div className="h-screen w-full flex flex-col items-center justify-center bg-[#FBBF24]">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-          @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
-          .pixel-font { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace; }
+          @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
+          .pixel-font { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
           .pixel-box {
             border: 6px solid black;
             background: white;
@@ -136,6 +137,7 @@ const App: React.FC = () => {
       <Routes>
         {/* Landing Page - Public */}
         <Route path="/" element={user ? <Navigate to="/app" replace /> : <LandingPage />} />
+        <Route path="/updates" element={<UpdatesPage />} />
 
         {/* Login Page */}
         <Route 
@@ -159,8 +161,8 @@ const App: React.FC = () => {
               <div className="flex h-screen bg-[#f0f0f0] overflow-hidden">
                 <style>{`
                   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-                  @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
-                  * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace; }
+                  @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
+                  * { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
                   
                   /* Custom Scrollbar for Pixel Look */
                   ::-webkit-scrollbar { width: 12px; }

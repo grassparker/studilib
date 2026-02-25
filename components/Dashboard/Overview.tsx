@@ -77,8 +77,8 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
       
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
-        .pixel-font { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace; }
+        @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
+        .pixel-font { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
         .pixel-box {
           border: 4px solid black;
           box-shadow: 6px 6px 0 0 rgba(0,0,0,1);

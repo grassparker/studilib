@@ -31,10 +31,10 @@ export const GuildDetail: React.FC<{ user: any }> = ({ user }) => {
   const pixelStyles = (
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-      @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
       
       .social-scope *:not(i) { 
-          font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; 
+          font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; 
           text-transform: uppercase; 
       }
 

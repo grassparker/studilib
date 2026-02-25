@@ -51,8 +51,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, onLogo
         
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-          @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
-          .font-pixel { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace; }
+          @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
+          .font-pixel { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
           
           .menu-container-social {
             border: 4px solid black;

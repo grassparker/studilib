@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import updatesData from '../public/updates.json';
 
 export const LandingPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [isFlashing, setIsFlashing] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const latestUpdate = updatesData[0];
 
   const toggleLang = () => {
     i18n.changeLanguage(i18n.language === 'EN' ? 'ZH' : 'EN');
@@ -22,11 +25,40 @@ export const LandingPage: React.FC = () => {
     setTimeout(() => navigate('/login'), 250);
   };
 
+  const hasRecentUpdate = () => {
+    if (!updatesData || updatesData.length === 0) return false;
+  
+    // Assuming the first item in JSON is the latest
+    const latestDate = new Date(updatesData[0].date);
+    const today = new Date();
+  
+    // Calculate difference in days
+    const diffTime = Math.abs(today.getTime() - latestDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+    return diffDays <= 7; // Returns true if updated in the last 7 days
+  };
+
+  useEffect(() => {
+    const lastSeenVersion = localStorage.getItem('studilib_last_seen_update');
+  
+    // Linkage Check: If the version in JSON is different from what they saw last
+    if (latestUpdate && lastSeenVersion !== latestUpdate.id) {
+      setShowPopup(true);
+    }
+  }, [latestUpdate]);
+
+  const dismissPopup = () => {
+    localStorage.setItem('studilib_last_seen_update', latestUpdate.id);
+    setShowPopup(false);
+  };
+
   return (
     <div className="min-h-screen bg-[#FBBF24] flex flex-col items-center p-6 text-black font-pixel">
         <style>{`
             @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-            .font-pixel { font-family: 'Press Start 2P', monospace; }
+            @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
+            .font-pixel { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
             .pixel-border {
                 border: 6px solid black;
                 box-shadow: 8px 8px 0 0 black;
@@ -77,7 +109,7 @@ export const LandingPage: React.FC = () => {
         onClick={toggleLang}
         className="fixed top-6 right-6 bg-white border-4 border-black px-4 py-2 text-[10px] font-bold shadow-[4px_4px_0_0_black] active:translate-y-1 active:shadow-none z-[100] uppercase"
       >
-        {i18n.language === 'EN' ? '🇨🇳 中文' : '🇺🇸 EN'}
+        {i18n.language === 'EN' ? '中文' : 'EN'}
       </button>
 
       {/* HERO SECTION */}
@@ -95,7 +127,7 @@ export const LandingPage: React.FC = () => {
             onClick={handleBootClick} // FIXED: Added the click handler
             className="bg-black text-amber-400 pixel-border px-8 py-4 text-[12px] hover:bg-gray-900 transition-all active:translate-y-1 active:shadow-none font-bold uppercase animate-bop"
           >
-            {t('GET STARTED')}
+            {t('start')}
           </button>
           
           <a 
@@ -104,7 +136,7 @@ export const LandingPage: React.FC = () => {
             rel="noreferrer"
             className="bg-white text-black pixel-border px-8 py-4 text-[12px] hover:bg-gray-100 transition-all active:translate-y-1 active:shadow-none font-bold uppercase"
           >
-            SOURCE_CODE
+            {t('source code')}
           </a>
         </div>
       </div>
@@ -115,29 +147,28 @@ export const LandingPage: React.FC = () => {
         {/* Left Column: The "Why" */}
         <div className="terminal-card shadow-[12px_12px_0_0_black]">
           <h2 className="text-[14px] mb-6 border-b-4 border-black pb-2 text-red-600 font-bold">
-            {">"} MISSION_OBJECTIVE
+            {">"} {t("MISSION_OBJECTIVE")}
           </h2>
           <div className="space-y-6 text-[10px] leading-relaxed">
             <p>
-              Traditional study apps are boring. <span className="bg-black text-white px-1">StudiLib</span> treats your focus as a resource. 
-              Earn coins through deep work sessions and invest them in your personal Haven.
+              {t("mission_desc")}
             </p>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <span className="text-green-600">[✓]</span>
-                <span>Stop Procrastinating: Use the integrated Pomodoro system to stay on track.</span>
+                <span>{t("mission_item1")}</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-green-600">[✓]</span>
-                <span>Build Your Haven: Purchase and upgrade items for your inventory.</span>
+                <span>{t("mission_item2")}.</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-green-600">[✓]</span>
-                <span>Track Progress: Real-time analytics for your study streaks and focus time.</span>
+                <span>{t("mission_item3")}</span>
               </li>
               <li className="flex items-start gap-3">
                 <span className="text-green-600">[✓]</span>
-                <span>Conquer tasks: Nothig is impossible to complete. Blaze through tasks and manage your time.</span>
+                <span>{t("mission_item4")}</span>
               </li>
             </ul>
           </div>
@@ -146,28 +177,28 @@ export const LandingPage: React.FC = () => {
         {/* Right Column: The "How" (Tutorial) */}
         <div className="terminal-card shadow-[12px_12px_0_0_#0ea5e9]">
           <h2 className="text-[14px] mb-6 border-b-4 border-black pb-2 text-blue-600 font-bold">
-            {">"} BOOT_SEQUENCE
+            {">"} {t("BOOT_SEQUENCE")}
           </h2>
           <div className="space-y-4 text-[9px]">
             <div className="flex gap-4 items-center bg-gray-100 p-3 border-2 border-black">
                 <span className="text-xl">01</span>
-                <p>SYNC_ACCOUNT: Confirm your identity to enable cloud-save for your Haven items.</p>
+                <p>{t("boot_01")}</p>
             </div>
             <div className="flex gap-4 items-center bg-gray-100 p-3 border-2 border-black">
                 <span className="text-xl">02</span>
-                <p>FOCUS_MODE: Complete Pomodoro sessions to mine currency (Coins).</p>
+                <p>{t("boot_02")}</p>
             </div>
             <div className="flex gap-4 items-center bg-gray-100 p-3 border-2 border-black">
                 <span className="text-xl">03</span>
-                <p>EXPAND_BASE: Visit the shop to purchase upgrades and rare pixel art furniture.</p>
+                <p>{t("boot_03")}</p>
             </div>
             <div className="flex gap-4 items-center bg-gray-100 p-3 border-2 border-black">
                 <span className="text-xl">04</span>
-                <p>ACHIEVE: Unlock medals for consistency and focus milestones.</p>
+                <p>{t("boot_04")}</p>
             </div>
             <div className="flex gap-4 items-center bg-gray-100 p-3 border-2 border-black">
-                <span className="text-xl">Try something new?</span>
-                <p>Request new features and sign up for the waitlist. :D</p>
+                <span className="text-xl">{t("suggestions")}</span>
+                <p>{t("boot_05")}</p>
             </div>
           </div>
         </div>
@@ -189,15 +220,14 @@ export const LandingPage: React.FC = () => {
         {/* Text Content */}
         <div className="flex-1 text-center md:text-left">
           <h2 className="text-[12px] mb-3 text-purple-700 font-bold uppercase tracking-widest">
-            {">"} COMMUNITY_HIGHLIGHT: PIXELDORO (Dev Recommendation)
+            {">"} {t("COMMUNITY_HIGHLIGHT")}
           </h2>
           <p className="text-[10px] leading-relaxed text-gray-800 uppercase font-bold mb-4">
-            Different people have different approaches to productivity. 
-            The <span className="bg-purple-200 px-1">Pixeldoro</span> crew has built an amazingly wholesome community and a unique focus system. I promise, it's wonderful!
+            {t("pixeldoro_desc")}
           </p>
           <div className="flex justify-center md:justify-start gap-4 text-[8px] opacity-70">
-            <span>DEVS_APPROVED: [YES]</span>
-            <span>VIBE_CHECK: [WHOLESOME]</span>
+            <span>{t("devs_approved")}</span>
+            <span>{t("vibe_check")}</span>
           </div>
         </div>
 
@@ -208,7 +238,7 @@ export const LandingPage: React.FC = () => {
           rel="noreferrer"
           className="bg-black text-white pixel-border px-8 py-4 text-[10px] hover:bg-purple-700 transition-all active:translate-y-1 active:shadow-none font-bold whitespace-nowrap"
         >
-          VISIT_PIXELDORO
+          {t("VISIT_PIXELDORO")}
         </a>
       </div>
     </div>
@@ -218,11 +248,53 @@ export const LandingPage: React.FC = () => {
       <div className="mt-auto pb-10 text-[8px] opacity-60 flex flex-col items-center gap-4">
         <div className="flex flex-wrap justify-center gap-8">
             <span>LOC: KUALA_LUMPUR</span>
-            <span>USER_COUNT: 001_ACTIVE</span>
-            <span className="text-green-700 animate-pulse font-bold">SYSTEM: STABLE</span>
+            <span>{t("user_count")}</span>
         </div>
-        <p>© 2026 CANDY. DESIGNED FOR AUTONOMOUS LEARNERS.</p>
+        <button 
+          onClick={() => navigate('/updates')}
+          className="text-green-700 animate-pulse font-bold hover:bg-black hover:text-white px-2 py-1 transition-colors border border-transparent hover:border-black"
+        >SYSTEM: STABLE {hasRecentUpdate() && "(!)"}</button>
+        <p onClick={() => navigate('/updates')} className="cursor-pointer hover:underline">© 2026 CANDY.{t("designed_for")}</p>
       </div>
+
+      {showPopup && (
+        <div className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4">
+          <div className="pixel-border bg-white max-w-sm w-full p-6 relative">
+            <div className="bg-blue-600 text-white text-[8px] p-2 mb-4">
+              {t('SYSTEM_NOTIFICATION')}
+            </div>
+            
+            <h2 className="text-[12px] mb-2 text-red-600 font-bold">
+              {">"} {latestUpdate?.title}
+            </h2>
+            
+            <p className="text-[10px] text-slate-600 mb-6 leading-relaxed">
+              {latestUpdate?.content}
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  dismissPopup();
+                  navigate('/updates');
+                }}
+                className="bg-black text-amber-400 pixel-border p-3 text-[10px] w-full"
+              >
+                {t('view_logs')}
+              </button>
+              
+              <button 
+                onClick={dismissPopup}
+                className="text-[8px] uppercase underline opacity-50 hover:opacity-100"
+              >
+                {t('dismiss')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
+    
   );
 };

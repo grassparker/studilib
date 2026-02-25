@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../components/Auth/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
 export const ResetPassword = () => {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -12,7 +14,7 @@ export const ResetPassword = () => {
     e.preventDefault();
     
     if (password.length < 6) {
-      setMessage("ERROR: ACCESS_KEY_TOO_SHORT (MIN 6)");
+      setMessage(t('password_too_short'));
       return;
     }
 
@@ -24,7 +26,7 @@ export const ResetPassword = () => {
     if (error) {
       setMessage(`ERROR: ${error.message}`);
     } else {
-      setMessage('SUCCESS: CREDENTIALS_UPDATED');
+      setMessage(t('system_reconfigured'));
       setTimeout(() => navigate('/login'), 2000);
     }
     setLoading(false);
@@ -34,7 +36,8 @@ export const ResetPassword = () => {
     <div className="min-h-screen bg-[#FBBF24] flex items-center justify-center p-6 font-pixel">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        .font-pixel { font-family: 'Press Start 2P', monospace; }
+        @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
+        .font-pixel { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
         .pixel-box {
           background: white;
           border: 6px solid black;
@@ -49,7 +52,7 @@ export const ResetPassword = () => {
         
         <form onSubmit={handleReset} className="space-y-6">
           <div>
-            <label className="block text-[8px] mb-2 uppercase">New_Access_Key:</label>
+            <label className="block text-[8px] mb-2 uppercase">{t('new_pass')}:</label>
             <input
               type="password"
               required
@@ -65,7 +68,7 @@ export const ResetPassword = () => {
             disabled={loading}
             className="w-full bg-black text-[#FBBF24] p-4 text-[10px] font-bold uppercase hover:bg-gray-900 active:translate-y-1"
           >
-            {loading ? 'PROCESSING...' : '[ EXECUTE_UPDATE ]'}
+            {loading ? t('processing') : `[ ${t('execute_update')} ]`}
           </button>
         </form>
 

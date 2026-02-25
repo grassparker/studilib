@@ -64,10 +64,10 @@ return (
         <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-2 md:p-4">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-                @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
                 
                 .profile-scope *:not(i) { 
-                    font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; 
+                    font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; 
                     text-transform: uppercase; 
                 }
 

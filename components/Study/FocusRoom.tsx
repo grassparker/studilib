@@ -206,9 +206,9 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
       {/* (Styles and JSX remain the same as your previous version) */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=WDXL+Lubrifont+SC&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
         .game-ui-scope { image-rendering: pixelated; }
-        .game-ui-scope * { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
+        .game-ui-scope * { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; text-transform: uppercase; }
         .menu-box { background: white; border: 4px solid black; box-shadow: 8px 8px 0 0 rgba(0,0,0,1); padding: 24px; }
         .timer-text { font-size: clamp(2rem, 10vw, 4.5rem); color: black; margin: 30px 0; text-align: center; letter-spacing: -2px; }
         .progress-container { width: 100%; height: 24px; border: 4px solid black; background: #EEE; position: relative; }
