@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import updatesData from '../public/updates.json'; // Adjust path as needed
 
-export const UpdatesPage: React.FC = () => {
+export const Updates: React.FC = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
   

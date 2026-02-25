@@ -10,7 +10,7 @@ import ProfileModal from './components/Profile/ProfileModal';
 import { supabase } from './components/Auth/supabaseClient';
 import { LandingPage } from './public/LandingPage';
 import { GuildDetail } from './components/Friends/Guild/GuildDetail';
-import { UpdatesPage } from './public/Updates';
+import { Updates } from './public/Updates';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -136,7 +136,7 @@ const App: React.FC = () => {
     <Router>
       <Routes>
         {/* PUBLIC ACCESS: Always available for SEO and Users */}
-        <Route path="/updates" element={<UpdatesPage />} />
+        <Route path="/updates" element={<Updates />} />
 
         {/* LANDING PAGE: Logic to skip if already logged in */}
         <Route 
