@@ -21,6 +21,9 @@ export const UpdatesPage: React.FC = () => {
     return (
         <div className="social-scope max-w-4xl mx-auto p-4 md:p-8 min-h-screen">
             <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
+                .font-pixel { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
                 .social-scope *:not(i) { font-family: 'Press Start 2P', 'WDXL Lubrifont SC', monospace !important; text-transform: uppercase; }
                 .social-scope i { font-family: "Font Awesome 6 Free" !important; font-weight: 900; }
         

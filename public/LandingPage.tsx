@@ -40,16 +40,22 @@ export const LandingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const lastSeenVersion = localStorage.getItem('studilib_last_seen_update');
+    if (latestUpdate && latestUpdate.id) {
+      // Remove the localStorage check - just show the popup every time
+      // OR use a different key that resets per session
+      const sessionKey = `studilib_update_${latestUpdate.id}_${new Date().toDateString()}`;
+      const lastSeenVersion = localStorage.getItem(sessionKey);
   
-    // Linkage Check: If the version in JSON is different from what they saw last
-    if (latestUpdate && lastSeenVersion !== latestUpdate.id) {
-      setShowPopup(true);
+      if (!lastSeenVersion) {
+        setShowPopup(true);
+      }
     }
   }, [latestUpdate]);
 
   const dismissPopup = () => {
-    localStorage.setItem('studilib_last_seen_update', latestUpdate.id);
+    // Store with today's date so it only shows once per day
+    const sessionKey = `studilib_update_${latestUpdate.id}_${new Date().toDateString()}`;
+    localStorage.setItem(sessionKey, 'seen');
     setShowPopup(false);
   };
 
