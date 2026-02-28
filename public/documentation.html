@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudiLib | 文档说明</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Cutive+Mono&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="../StudiLibCN.css">
+
+    <style>
+        /* Layout */
+        .container {
+            flex: 1;
+        }
+
+        .magazine-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        /* Sidebars */
+        .sidebar-left {
+            background: rgba(233, 69, 96, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e94560;
+            height: fit-content;
+        }
+
+        .sidebar-left h3 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #e94560;
+            font-family: "Pixelify Sans", sans-serif;
+        }
+
+        /* Collapsible Features */
+        .collapsible-feature {
+            margin-bottom: 15px;
+        }
+
+        .feature-toggle {
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            color: #e94560;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-family: "Pixelify Sans", sans-serif;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .feature-toggle:hover {
+            background: rgba(233, 69, 96, 0.3);
+        }
+
+        .feature-content {
+            list-style-type: none;
+            padding-left: 0;
+            margin-top: 8px;
+        }
+
+        .feature-content li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(233, 69, 96, 0.05);
+            border-left: 3px solid #e94560;
+            font-size: 14px;
+        }
+
+        /* Team Section */
+        .person {
+            background: rgba(232, 220, 200, 0.1);
+            border: 2px solid #e94560;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .person:hover {
+            background: rgba(232, 220, 200, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(233, 69, 96, 0.3);
+        }
+
+        .person h4 {
+            color: #e94560;
+            font-family: "Pixelify Sans", sans-serif;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+
+        /* Mobile Responsive Fixes */
+        @media (max-width: 768px) {
+            .magazine-layout {
+                grid-template-columns: 1fr;
+                padding: 15px;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .hero {
+                padding: 20px 10px;
+            }
+
+            .hero h2 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="main-header">
+        <h1><a href="../StudiLib.html">StudiLib</a></h1>
+    </header>
+
+    <main class="container">
+        <nav>
+            <ul class="nav-links">
+                <li><a href="../StudiLib.html">首页</a></li>
+                <li><a href="../Features/features.html">更新动态</a></li>
+                <li><a href="../Documentation/documentation.html">文档说明</a></li>
+                <li><a href="../Blogs/blogs.html">官方博客</a></li>
+            </ul>
+        </nav>
+
+        <div class="magazine-layout">
+            <aside class="sidebar-left">
+                <h3>图书馆索引</h3>
+
+                <div class="collapsible-feature">
+                    <button class="feature-toggle">▼ 探索空间</button>
+                    <ul class="feature-content">
+                        <li><b>学习小镇 (Study Town)</b> – 你的数字社区校园，开启共同学习之旅。</li>
+                        <li><b>个人寝室 (The Dorm)</b> – 私人定制化空间，专注冲刺个人目标。</li>
+                    </ul>
+                </div>
+
+                <div class="collapsible-feature">
+                    <button class="feature-toggle">▶ 系统功能</button>
+                    <ul class="feature-content" style="display: none;">
+                        <li><b>专注计时器</b> – 掌握番茄工作法的艺术。</li>
+                        <li><b>小组同步</b> – 实时协作，让你保持自律。</li>
+                    </ul>
+                </div>
+            </aside>
+
+            <section class="main-content">
+                <section class="hero">
+                    <h2>技术文档</h2>
+                    <h3>深度解析你最爱的自习室。</h3>
+
+                    <p class="Import-text">这里是 StudiLib 的核心枢纽。无论你是想深入了解功能运作原理，还是对我们技术栈感兴趣的开发者，都能在这里找到蓝图。从逻辑片段到设计哲学，我们始终秉持开源精神。 </p>
+
+                    <h3 class="liTitle">幕后团队：</h3>
+                    <p class="Import-text">StudiLib 是由两人团队发起的兴趣项目，旨在解决“孤独式自习”的问题。我们致力于打造一个将高效产出与趣味性完美融合的空间。</p>
+
+                    <div class="person">
+                        <h4><a href="https://grasspixel.click" target="_blank">Candy (She/Her) — 架构与愿景</a></h4>
+                        <p class="Import-text">作为首席开发，Candy 搭建了整洁代码与温馨设计之间的桥梁。她负责后端重任，确保界面的每一个像素都经过深思熟虑且响应迅速。</p>
+                    </div>
+
+                    <div class="person">
+                        <h4>Ashmita (She/Her) — 视觉识别与灵魂</h4>
+                        <p class="Import-text">Ashmita 为 StudiLib 注入了生命。从角色像素画到整体美学配色，她的插画将一个生产力工具转变为一个生机勃勃的社区。</p>
+                    </div>
+
+                    <h3 class="liTitle">准备好进阶了吗？</h3>
+                    <p class="Import-text">浏览文档以玩转平台，或者直接回到社区开启你的下一场自习。 </p>
+                </section>
+            </section>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <p>&copy; 2025 Candy. 版权所有。</p>
+        <ul class="nav-links">
+            <li><a href="../Docs/PrivacyPolicy.html">隐私政策</a></li>
+            <li><a href="../Docs/TermsAndConditions.html">服务条款</a></li>
+        </ul>
+    </footer>
+
+    <script>
+        // 折叠功能脚本
+        document.querySelectorAll('.feature-toggle').forEach(button => {
+            button.addEventListener('click', function() {
+                const content = this.nextElementSibling;
+                const isHidden = content.style.display === 'none';
+
+                content.style.display = isHidden ? 'block' : 'none';
+                this.textContent = (isHidden ? '▼ ' : '▶ ') + this.textContent.slice(2);
+            });
+        });
+    </script>
+</body>
+
+</html>
