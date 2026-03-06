@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TimerMode } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
@@ -23,7 +23,21 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
   const [notes, setNotes] = useState<string>('');
   const [targetTimestamp, setTargetTimestamp] = useState<string | null>(null);
 
-  // 1. Initial Session & Data Load
+  // ---  MUSIC STATE & REF ---
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const LOFI_BEATS = [
+    'https://luan.xyz/files/audio/ambient_c_motion.mp3',
+    'https://www.bensound.com/bensound-music/bensound-slowmotion.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
+    'https://luan.xyz/files/audio/nomad.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+    'https://raw.githubusercontent.com/rafael-p-moraes/lofi-music-player/main/assets/music/1.mp3',
+    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+  ];
+
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -45,7 +59,6 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
             setMode(data.timer_mode as TimerMode || TimerMode.POMODORO);
             setIsActive(true);
           } else {
-            // TIMER EXPIRED WHILE AWAY: Trigger Retroactive Save
             handleCompleteRetroactive(data.timer_mode as TimerMode || TimerMode.POMODORO, session.user.id);
           }
         }
@@ -61,43 +74,65 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
       Notification.requestPermission();
     }
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      // Stop music when leaving the room
+      if (audioRef.current) audioRef.current.pause();
+    };
   }, []);
 
-  // 2. RETROACTIVE COMPLETION HANDLER
-  const handleCompleteRetroactive = async (completedMode: TimerMode, userId: string) => {
-    // Check timing before wiping DB record
-    const { data: prof } = await supabase.from('profiles').select('timer_ends_at').eq('id', userId).single();
-    
-    if (!prof?.timer_ends_at) return;
+  // ---  MUSIC TOGGLE FUNCTION ---
+  const toggleMusic = () => {
+    if (isMusicPlaying) {
+      audioRef.current?.pause();
+      setIsMusicPlaying(false);
+    } else {
+      const randomTrack = LOFI_BEATS[Math.floor(Math.random() * LOFI_BEATS.length)];
 
+      if (!audioRef.current) {
+        audioRef.current = new Audio(randomTrack);
+        audioRef.current.loop = true;
+        audioRef.current.volume = 0.5;
+      }
+
+      const newAudio = new Audio(randomTrack);
+      newAudio.loop = false;
+      newAudio.volume = 0.5;
+
+      newAudio.onended = () => {
+        setIsMusicPlaying(false);
+        toggleMusic(); // Play next track
+      };
+
+      audioRef.current = newAudio;
+      audioRef.current.play().catch(err => {
+        console.error("Error playing music:", err);
+        setIsMusicPlaying(false);
+      });
+      setIsMusicPlaying(true);
+    }
+  };
+
+  const handleCompleteRetroactive = async (completedMode: TimerMode, userId: string) => {
+    const { data: prof } = await supabase.from('profiles').select('timer_ends_at').eq('id', userId).single();
+    if (!prof?.timer_ends_at) return;
     const endTime = new Date(prof.timer_ends_at).getTime();
     const now = new Date().getTime();
     const minutesSinceFinished = (now - endTime) / 1000 / 60;
 
-    // A. Wipe the ghost timer from profiles
     await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', userId);
-    
-    // B. Save the minutes to study_sessions (Always reward the effort!)
     const minutesSpent = completedMode === TimerMode.POMODORO ? 25 : (completedMode === TimerMode.SHORT_BREAK ? 5 : 15);
-    await supabase.from('study_sessions').insert([{ 
-      user_id: userId, 
-      time: minutesSpent, 
-      status: 'completed' 
-    }]);
+    await supabase.from('study_sessions').insert([{ user_id: userId, time: minutesSpent, status: 'completed' }]);
 
-    // C. Reward Coins only if returned within 30 mins
     if (completedMode === TimerMode.POMODORO && minutesSinceFinished < 30) {
       updateCoins(25);
     }
 
-    // D. Sync Local UI
     const nextMode = completedMode === TimerMode.POMODORO ? TimerMode.SHORT_BREAK : TimerMode.POMODORO;
     setMode(nextMode);
     resetTimer(nextMode);
   };
 
-  // 3. MASTER SYNC LOGIC (Running Timer)
   useEffect(() => {
     let interval: any = null;
     const syncTimer = () => {
@@ -203,7 +238,6 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
 
   return (
     <div className="game-ui-scope flex flex-col lg:flex-row gap-8 min-h-full p-4 lg:p-8">
-      {/* (Styles and JSX remain the same as your previous version) */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
@@ -215,8 +249,12 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
         .progress-fill { height: 100%; background: #FBBF24; transition: width 1s linear; }
         .btn-action { background: #FBBF24; border: 4px solid black; padding: 16px 32px; font-size: 10px; cursor: pointer; box-shadow: 4px 4px 0 0 black; }
         .btn-action:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 black; }
-        .btn-action:disabled { background: #ccc; cursor: not-allowed; }
         .btn-reset { background: white; border: 4px solid black; padding: 12px; cursor: pointer; box-shadow: 4px 4px 0 0 black; }
+        
+        .btn-music { background: white; border: 4px solid black; padding: 12px; cursor: pointer; box-shadow: 4px 4px 0 0 black; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
+        .btn-music:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 black; }
+        .btn-music.playing { background: black; color: #FBBF24; }
+        
         .mode-btn { font-size: 7px; padding: 10px; border-bottom: 4px solid transparent; color: #999; }
         .mode-btn.active { border-bottom: 4px solid #FBBF24; color: black; }
         .notes-input { width: 100%; min-height: 350px; border: 4px solid black; padding: 20px; font-size: 10px; line-height: 1.8; resize: none; outline: none; background: #FFF; }
@@ -238,12 +276,27 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
         <h1 className="timer-text tabular-nums">
           {Math.floor(timeLeft / 60).toString().padStart(2, '0')}:{(timeLeft % 60).toString().padStart(2, '0')}
         </h1>
-        <div className="flex gap-6 mt-4">
+        <div className="flex gap-4 mt-4 flex-wrap justify-center">
           <button onClick={toggleTimer} className="btn-action">{isActive ? t('halt') : t('begin')}</button>
           <button onClick={() => resetTimer(mode)} className="btn-reset">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3" strokeLinecap="square">
               <path d="M1 4v6h6" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
             </svg>
+          </button>
+          
+          {/* --- NEW MUSIC BUTTON --- */}
+          <button onClick={toggleMusic} className={`btn-music ${isMusicPlaying ? 'playing' : ''}`}>
+            {isMusicPlaying ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+            )}
           </button>
         </div>
       </div>
