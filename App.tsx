@@ -8,9 +8,9 @@ import { TopBar } from './components/Layout/TopBar';
 import { User } from './types';
 import ProfileModal from './components/Profile/ProfileModal';
 import { supabase } from './components/Auth/supabaseClient';
-import { LandingPage } from './public/LandingPage';
+import { LandingPage } from './pages/LandingPage';
 import { GuildDetail } from './components/Friends/Guild/GuildDetail';
-import { Updates } from './public/Updates';
+import { Updates } from './pages/Updates';
 
 const App: React.FC = () => {
   const { t, i18n } = useTranslation();

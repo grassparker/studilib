@@ -27,15 +27,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ updateCoins }) => {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const LOFI_BEATS = [
-    'https://luan.xyz/files/audio/ambient_c_motion.mp3',
-    'https://www.bensound.com/bensound-music/bensound-slowmotion.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
-    'https://luan.xyz/files/audio/nomad.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-    'https://raw.githubusercontent.com/rafael-p-moraes/lofi-music-player/main/assets/music/1.mp3',
-    'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
+    'https://luan.xyz/files/audio/ambient_c_motion.mp3'
   ];
 
   useEffect(() => {

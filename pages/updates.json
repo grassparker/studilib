@@ -1,5 +1,13 @@
 [
   {
+    "id": "v1.2.1",
+    "date": "2026-03-06",
+    "type": "FEATURE",
+    "title": "Music",
+    "content": "Now users can enjoy music and focus at the same time! We have a music player with a variety of music genres to choose from.",
+    "tags": ["MUSIC", "REALTIME", "TIMER"]
+  },
+  {
     "id": "v1.2.0",
     "date": "2026-02-25",
     "type": "FEATURE",

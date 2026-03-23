@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import updatesData from '../public/updates.json'; // Adjust path as needed
+import updatesData from './updates.json'; // Adjust path as needed
 
 export const Updates: React.FC = () => {
     const { t } = useTranslation();
@@ -57,7 +57,17 @@ export const Updates: React.FC = () => {
                 <h1 className="text-xl md:text-2xl font-bold">SYSTEM_LOGS</h1>
                 <p className="text-[8px] text-slate-500 mt-2">STUDILIB_VERSION_HISTORY</p>
             </div>
-            <button onClick={() => navigate(-1)} className="bg-black text-white p-4 text-[10px] hover:bg-slate-800">
+            <button 
+                onClick={() => {
+                    // Check if there is history to go back to
+                    if (window.history.length > 1) {
+                        navigate(-1);
+                    } else {
+                        navigate('/'); // Fallback to your home/dashboard route
+                    }
+                }} 
+                className="bg-black text-white p-4 text-[10px] hover:bg-slate-800 active:translate-y-1 transition-transform"
+            >
                 [BACK_TO_CORE]
             </button>
         </div>

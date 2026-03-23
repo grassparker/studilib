@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import updatesData from '../public/updates.json';
+import updatesData from './updates.json';
 
 export const LandingPage: React.FC = () => {
   const { t, i18n } = useTranslation();

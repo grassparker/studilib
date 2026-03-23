@@ -209,6 +209,13 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
             }) : (
               <p className="text-[8px] text-slate-400 text-center">{t('no_allies')}</p>
             )}
+
+            <a 
+              href="/updates" 
+              className="block text-center border-4 border-white bg-white text-black p-3 text-[8px] hover:bg-amber-400 hover:border-amber-400 transition-colors active:translate-y-1"
+            >
+              [ {t('view_updates') || 'View Changelog'} ]
+            </a>
           </div>
         </section>
 
