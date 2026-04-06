@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import * as packageJson from '../../package.json';
+import * as packageJson from '../../../package.json';
 import '../../index.css';
 
 interface SidebarProps {
