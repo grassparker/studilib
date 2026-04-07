@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AuthForms } from './components/Auth/AuthForms';
+import { AuthForms } from './components/Auth/Authentication';
 import { Dashboard } from './components/Dashboard';
 import { Sidebar } from './components/Layout/Sidebar';
 import { TopBar } from './components/Layout/TopBar';
@@ -36,9 +36,8 @@ const App: React.FC = () => {
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          // This catches the "Invalid Refresh Token" error
           console.error('Auth init error:', error.message);
-          await supabase.auth.signOut(); // Clear stale cookies/tokens
+          await supabase.auth.signOut();
           if (isMounted) {
             setUser(null);
             setIsLoading(false);

@@ -7,32 +7,34 @@ interface AuthFormsProps {
 }
 
 export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
+  const [isLoggedIn, setisLoggedIn] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    username: '',
+  });
+  const [isPending, setisPending] = useState(false);
   const { t } = useTranslation();
-  const [isLogin, setIsLogin] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const userLogsIn = async (e: React.FormEvent<HTMLFormElement>) => { // Bruh FormEvent might be phased out so look for updates LOL
+    e.preventDefault(); // Prevents the entire page refresh DO NOT DELETE THE APP WILL DIE :(
+    setisPending(true);
 
     try {
-      if (isLogin) {
+      if (isLoggedIn) {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: formData.email,
+          password: formData.password,
         });
         if (error) throw error;
       } else {
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: formData.email,
+          password: formData.password,
           options: {
             data: {
-              username: username,
-              avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`,
+              username: formData.username,
+              avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${formData.username}`,
             },
           },
         });
@@ -43,7 +45,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
     } catch (error: any) {
       alert(error.message || t('system_error'));
     } finally {
-      setLoading(false);
+      setisPending(false);
     }
   };
 
@@ -113,27 +115,27 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
           {/* Toggle Tabs */}
           <div className="flex mb-8 border-b-4 border-black">
             <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 tab-btn ${isLogin ? 'active' : 'opacity-40'}`}
+              onClick={() => setisLoggedIn(true)}
+              className={`flex-1 tab-btn ${isLoggedIn ? 'active' : 'opacity-40'}`}
             >
               [ {t('login')} ]
             </button>
             <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 tab-btn ${!isLogin ? 'active' : 'opacity-40'}`}
+              onClick={() => setisLoggedIn(false)}
+              className={`flex-1 tab-btn ${!isLoggedIn ? 'active' : 'opacity-40'}`}
             >
               [ {t('signup')} ]
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
+          <form onSubmit={userLogsIn} className="space-y-6">
+            {!isLoggedIn && (
               <div>
                 <label className="block text-[8px] mb-2">{t('user_id')}</label>
                 <input
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   className="pixel-input"
                   placeholder={t('id_identifier')}
                   required
@@ -144,8 +146,8 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
               <label className="block text-[8px] mb-2">{t('email_address')}</label>
               <input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="pixel-input"
                 placeholder={t('user_domain')}
                 required
@@ -155,8 +157,8 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
               <label className="block text-[8px] mb-2">{t('password')}</label>
               <input
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="pixel-input"
                 placeholder={t('password_placeholder')}
                 required
@@ -165,10 +167,10 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
             
             <button
               type="submit"
-              disabled={loading}
+              disabled={isPending}
               className="w-full pixel-btn disabled:opacity-50"
             >
-              {loading ? t('processing') : (isLogin ? t('initiate_session') : t('register_user'))}
+              {isPending ? t('processing') : (isLoggedIn ? t('initiate_session') : t('register_user'))}
             </button>
           </form>
 
