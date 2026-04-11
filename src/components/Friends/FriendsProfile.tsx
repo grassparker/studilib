@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
-import '../../index.css';
 import { Achievements } from '../Profile/Achievements';
 
 interface FriendsProfileProps {
     isOpen: boolean;
     onClose: () => void;
-    user: User; // This is the friend's user object
+    user: User;
 }
 
 export default function FriendsProfile({ isOpen, onClose, user }: FriendsProfileProps) {
@@ -26,7 +25,6 @@ export default function FriendsProfile({ isOpen, onClose, user }: FriendsProfile
             todayDate.setHours(0, 0, 0, 0);
             const todayISO = todayDate.toISOString();
 
-            // 1. FETCH FRIEND'S SESSIONS (READ ONLY)
             const { data: sessionData } = await supabase
                 .from('study_sessions')
                 .select('time')
@@ -39,7 +37,6 @@ export default function FriendsProfile({ isOpen, onClose, user }: FriendsProfile
                 setTotalFocusMinutes(totalMins);
             }
 
-            // 2. FETCH PROFILE (READ ONLY - NO STREAK UPDATING HERE!)
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('weekly_streak, daily_goal')
@@ -60,8 +57,8 @@ export default function FriendsProfile({ isOpen, onClose, user }: FriendsProfile
 
     if (!isOpen) return null;
 
-return (
-        <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-md p-2 md:p-4">
+    return (
+        <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-[#1a2e1a]/90 backdrop-blur-sm p-2 md:p-4">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
                 @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
@@ -71,7 +68,6 @@ return (
                     text-transform: uppercase; 
                 }
 
-                /* Mobile Font Scaling */
                 @media (max-width: 640px) {
                     .profile-scope h1 { font-size: 10px !important; }
                     .profile-scope h2 { font-size: 7px !important; }
@@ -79,79 +75,94 @@ return (
                     .stat-value { font-size: 8px !important; }
                 }
 
-                .terminal-modal { 
-                    background: #1a1a1a; 
-                    border: 4px solid #333; 
-                    color: #00ff00; 
-                    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+                .parchment-modal { 
+                    background: #fdf4db; 
+                    border: 6px solid #3e2723; 
+                    color: #3e2723; 
+                    box-shadow: 12px 12px 0 0 #2a1b0a;
+                    background-image: repeating-linear-gradient(90deg, #f7ecd0, #f7ecd0 2px, transparent 2px, transparent 4px),
+                                      repeating-linear-gradient(0deg, #f7ecd0, #f7ecd0 2px, transparent 2px, transparent 4px);
+                    background-size: 8px 8px;
                 }
-                .stat-box { border: 2px solid #333; background: #111; padding: 12px md:padding: 15px; }
-                .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 16px; padding: 2px; }
-                .xp-bar-fill { background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.5s; }
+
+                .stat-container { border: 4px solid #5d4037; background: #efebe9; padding: 15px; position: relative; }
+                
+                .energy-bar-container { border: 4px solid #3e2723; background: #3e2723; height: 24px; padding: 2px; }
+                .energy-bar-fill { background: #4caf50; border: 2px solid #81c784; transition: width 0.5s; }
+                
+                .close-btn { 
+                    background: #e53935; 
+                    color: white; 
+                    border: 4px solid #3e2723; 
+                    box-shadow: 4px 4px 0 0 #2a1b0a;
+                }
+                .close-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 #2a1b0a; }
             `}</style>
 
-            {/* Container: w-[95%] on mobile, max-w-2xl on desktop */}
-            <div className="terminal-modal w-[95%] md:w-full max-w-2xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto p-4 md:p-10 relative">
+            <div className="parchment-modal w-[95%] md:w-full max-w-2xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto p-6 md:p-10 relative">
                 
-                {/* Close Button - Larger touch target for mobile */}
-                <button onClick={onClose} className="absolute top-2 right-2 md:top-4 md:right-4 text-red-500 p-2 text-sm md:text-lg">
-                    [X]
+                {/* Close Button */}
+                <button onClick={onClose} className="close-btn absolute top-2 right-2 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 flex items-center justify-center text-xs md:text-sm">
+                    X
                 </button>
                 
                 {/* Header Section */}
-                <div className="flex items-center gap-3 md:gap-4 mb-4 mt-2">
-                    <img 
-                        src={user.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} 
-                        className="w-12 h-12 md:w-16 md:h-16 border-4 border-[#333] bg-white p-1"
-                        alt="avatar"
-                    />
+                <div className="flex items-center gap-4 md:gap-6 mb-8 mt-2 border-b-4 border-[#3e2723] pb-6">
+                    <div className="relative">
+                        <img 
+                            src={user.avatar_url || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.username}`} 
+                            className="w-16 h-16 md:w-24 md:h-24 border-4 border-[#3e2723] bg-white p-1 shadow-[4px_4px_0_0_#3e2723]"
+                            alt="avatar"
+                        />
+                        <div className="absolute -bottom-2 -right-2 bg-[#ffaa00] border-2 border-[#3e2723] px-1 text-[6px]">LVL. ??</div>
+                    </div>
                     <div className="overflow-hidden">
-                         <h1 className="text-[10px] md:text-[12px] text-[#ffaa00] truncate">
+                         <h1 className="text-[12px] md:text-[16px] text-[#3e2723] mb-1">
                             {user.username}
                         </h1>
-                        <span className="text-[5px] md:text-[6px] text-slate-500 block truncate">
-                            ID_{user.id.substring(0,8)}
-                        </span>
+                        <p className="text-[6px] md:text-[8px] text-[#8d6e63]">
+                            JOURNEYMAN_ADVENTURER
+                        </p>
                     </div>
-                </div>
-
-                <div className="mb-6 md:mb-10 border-b-2 border-[#333] pb-4">
-                    <p className="text-[6px] text-slate-400">STATUS: ACCESSING_EXTERNAL_ENCRYPTION...</p>
                 </div>
 
                 {/* Progress Report */}
-                <div className="stat-box mb-6 md:mb-8">
-                    <h2 className="text-[7px] md:text-[8px] text-[#00ff00] mb-4 md:mb-6 tracking-widest">{">"} LIVE_SYNC_STATS</h2>
+                <div className="stat-container mb-8">
+                    <h2 className="text-[8px] md:text-[10px] text-[#3e2723] mb-4 flex items-center gap-2">
+                        <i className="fas fa-heart text-red-600"></i> PARTY_MEMBER_VITALS
+                    </h2>
                     
-                    {/* Responsive Grid: 2 cols on mobile, 4 on desktop */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 text-center">
-                        <div className="bg-[#0a0a0a] p-2 border border-[#222]">
-                            <p className="text-[5px] md:text-[6px] text-slate-500 mb-1">MINS</p>
-                            <p className="stat-value text-[8px] md:text-[10px] text-white">{totalFocusMinutes}</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+                        <div className="bg-[#fdfbf7] p-2 border-2 border-[#5d4037] text-center">
+                            <p className="text-[5px] md:text-[6px] text-[#8d6e63] mb-1">FOCUS</p>
+                            <p className="stat-value text-[8px] md:text-[10px]">{totalFocusMinutes}M</p>
                         </div>
-                        <div className="bg-[#0a0a0a] p-2 border border-[#222]">
-                            <p className="text-[5px] md:text-[6px] text-slate-500 mb-1">SESS</p>
-                            <p className="stat-value text-[8px] md:text-[10px] text-white">{sessionCount}</p>
+                        <div className="bg-[#fdfbf7] p-2 border-2 border-[#5d4037] text-center">
+                            <p className="text-[5px] md:text-[6px] text-[#8d6e63] mb-1">QUESTS</p>
+                            <p className="stat-value text-[8px] md:text-[10px]">{sessionCount}</p>
                         </div>
-                        <div className="bg-[#0a0a0a] p-2 border border-[#222]">
-                            <p className="text-[5px] md:text-[6px] text-slate-500 mb-1">STRK</p>
+                        <div className="bg-[#fdfbf7] p-2 border-2 border-[#5d4037] text-center">
+                            <p className="text-[5px] md:text-[6px] text-[#8d6e63] mb-1">STREAK</p>
                             <p className="stat-value text-[8px] md:text-[10px] text-[#ffaa00]">{streak}D</p>
                         </div>
-                        <div className="bg-[#0a0a0a] p-2 border border-[#222]">
-                            <p className="text-[5px] md:text-[6px] text-slate-500 mb-1">QUOTA</p>
-                            <p className="stat-value text-[8px] md:text-[10px] text-white">{rawPercent}%</p>
+                        <div className="bg-[#fdfbf7] p-2 border-2 border-[#5d4037] text-center">
+                            <p className="text-[5px] md:text-[6px] text-[#8d6e63] mb-1">ENERGY</p>
+                            <p className="stat-value text-[8px] md:text-[10px]">{rawPercent}%</p>
                         </div>
                     </div>
 
-                    <div className="xp-bar-container">
-                        <div className="h-full xp-bar-fill" style={{ width: `${barWidth}%` }} />
+                    <p className="text-[6px] mb-2 text-[#3e2723]">DAILY_GOAL_PROGRESS</p>
+                    <div className="energy-bar-container">
+                        <div className="h-full energy-bar-fill" style={{ width: `${barWidth}%` }} />
                     </div>
                 </div>
                 
                 {/* Achievements */}
-                <div className="stat-box mb-6 border-cyan-900/50">
-                    <h2 className="text-[7px] md:text-[8px] text-cyan-400 mb-4 md:mb-6 tracking-widest">{">"} ACHIEVEMENT_LOG</h2>
-                    <div className="overflow-x-auto">
+                <div className="stat-container mb-6">
+                    <h2 className="text-[8px] md:text-[10px] text-[#3e2723] mb-4 flex items-center gap-2">
+                        <i className="fas fa-trophy text-[#ffaa00]"></i> COLLECTED_LOOT
+                    </h2>
+                    <div className="overflow-x-auto bg-white/50 p-2 border-2 border-[#d7ccc8]">
                         <Achievements 
                             stats={{ streak, sessionCount, totalFocusMinutes }} 
                             userId={user.id} 
@@ -159,8 +170,8 @@ return (
                     </div>
                 </div>
 
-                <div className="text-center opacity-30 mt-4 pb-2">
-                    <p className="text-[5px] md:text-[6px]">-- END_OF_TRANSMISSION --</p>
+                <div className="text-center italic mt-4 pb-2">
+                    <p className="text-[6px] text-[#a1887f]">-- MAY THE CODE BE WITH THEM --</p>
                 </div>
             </div>
         </div>

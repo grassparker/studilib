@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
-import '../../index.css';
+ 
 import { Achievements } from './Achievements';
 
 interface ProfileModalProps {

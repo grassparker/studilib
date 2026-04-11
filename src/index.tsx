@@ -1,9 +1,8 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './i18n/config'; // Import i18n configuration
-import './index.css';
 import App from './App';
+import './index.css'; // Global styles
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

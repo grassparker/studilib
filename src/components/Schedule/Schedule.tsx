@@ -1,8 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../Auth/supabaseClient';
 import { User } from '../../types';
-import '../../index.css';
+
+interface SubTask {
+  id: string;
+  text: string;
+  done: boolean;
+}
 
 interface ScheduledTask {
   id: string;
@@ -11,274 +16,308 @@ interface ScheduledTask {
   task_date: string;
   duration_min: number;
   task_type: 'task' | 'call';
+  memos?: string;
+  sub_tasks?: SubTask[];
 }
 
 export const Schedule: React.FC<{ user: User }> = ({ user }) => {
   const { t } = useTranslation();
+
+  // --- STATE ---
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
+  const [viewMode, setViewMode] = useState<'month' | 'day'>('day');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedQuest, setSelectedQuest] = useState<ScheduledTask | null>(null);
 
+  // --- FORM STATE ---
   const [newTitle, setNewTitle] = useState('');
   const [newTime, setNewTime] = useState('09:00');
-  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
-  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
+  const [newSubTaskText, setNewSubTaskText] = useState('');
+  const [memoText, setMemoText] = useState('');
 
-  useEffect(() => {
-    if (user) {
-      fetchSchedule();
-      const interval = setInterval(fetchSchedule, 60000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const categoryOrder = [t('morning_log'), t('afternoon_log'), t('evening_log')];
 
-  const fetchSchedule = async () => {
-    const now = new Date();
-    const todayDate = now.toISOString().split('T')[0];
-    const currentTime = now.toTimeString().split(' ')[0];
-
-    const { data, error } = await supabase
+  // --- FETCH LOGIC ---
+  const fetchSchedule = useCallback(async () => {
+    setLoading(true);
+    const { data } = await supabase
       .from('schedules')
       .select('*')
       .eq('user_id', user.id)
-      // Automatically hide overdue tasks: must be today+future, and if today, time must be >= now
-      .or(`task_date.gt.${todayDate},and(task_date.eq.${todayDate},start_time.gte.${currentTime})`)
       .order('task_date', { ascending: true })
       .order('start_time', { ascending: true });
 
     if (data) setTasks(data);
-    if (error) console.error("Filter Error:", error.message);
     setLoading(false);
-  };
+  }, [user.id]);
 
+  useEffect(() => { fetchSchedule(); }, [fetchSchedule]);
+
+  useEffect(() => {
+    if (selectedQuest) setMemoText(selectedQuest.memos || '');
+  }, [selectedQuest]);
+
+  // --- ACTIONS ---
   const addTask = async () => {
     if (!newTitle.trim()) return;
     const { data } = await supabase.from('schedules').insert([{
-      user_id: user.id, 
-      title: newTitle.toUpperCase(), 
-      start_time: `${newTime}:00`, 
-      task_date: newDate, 
-      task_type: 'task', 
-      duration_min: 25
+      user_id: user.id,
+      title: newTitle.toUpperCase(),
+      start_time: `${newTime}:00`,
+      task_date: selectedDate,
+      task_type: 'task',
+      duration_min: 25,
+      sub_tasks: []
     }]).select();
-    
+
     if (data) {
       setTasks(prev => [...prev, data[0]].sort((a, b) => (a.task_date + a.start_time).localeCompare(b.task_date + b.start_time)));
       setNewTitle('');
     }
   };
 
-  const deleteTask = async (id: string) => {
-    await supabase.from('schedules').delete().eq('id', id);
-    setTasks(prev => prev.filter(t => t.id !== id));
-  };
+  const updateQuestDetails = async () => {
+    if (!selectedQuest) return;
+    const { error } = await supabase
+      .from('schedules')
+      .update({ memos: memoText, sub_tasks: selectedQuest.sub_tasks })
+      .eq('id', selectedQuest.id);
 
-  const saveEdit = async () => {
-    if (!editingTask) return;
-    const { error } = await supabase.from('schedules')
-      .update({ 
-        title: editingTask.title.toUpperCase(), 
-        start_time: editingTask.start_time, 
-        task_date: editingTask.task_date 
-      })
-      .eq('id', editingTask.id);
-    
     if (!error) {
-      setTasks(prev => prev.map(t => t.id === editingTask.id ? editingTask : t).sort((a,b) => (a.task_date + a.start_time).localeCompare(b.task_date + b.start_time)));
-      setEditingTask(null);
+      setTasks(prev => prev.map(t => t.id === selectedQuest.id ? { ...t, memos: memoText, sub_tasks: selectedQuest.sub_tasks } : t));
+      setSelectedQuest(null);
     }
   };
 
+  const toggleSubTask = (subTaskId: string) => {
+    if (!selectedQuest) return;
+    const updatedSubTasks = (selectedQuest.sub_tasks || []).map(st => 
+      st.id === subTaskId ? { ...st, done: !st.done } : st
+    );
+    setSelectedQuest({ ...selectedQuest, sub_tasks: updatedSubTasks });
+  };
+
+  const addSubTask = () => {
+    if (!newSubTaskText.trim() || !selectedQuest) return;
+    const newST: SubTask = { id: crypto.randomUUID(), text: newSubTaskText.toUpperCase(), done: false };
+    setSelectedQuest({ ...selectedQuest, sub_tasks: [...(selectedQuest.sub_tasks || []), newST] });
+    setNewSubTaskText('');
+  };
+
+  const deleteTask = async (id: string) => {
+    const { error } = await supabase.from('schedules').delete().eq('id', id);
+    if (!error) setTasks(prev => prev.filter(t => t.id !== id));
+  };
+
+  // --- HELPERS ---
+  const getTaskAtHour = (hour: number) => tasks.find(t => parseInt(t.start_time.split(':')[0]) === hour && t.task_date === selectedDate);
   const getDetailedCategory = (task: ScheduledTask) => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    
-    const taskDate = new Date(task.task_date);
-    const diffDays = Math.round((new Date(task.task_date).getTime() - new Date(todayStr).getTime()) / (1000 * 3600 * 24));
-
-    if (task.task_date === todayStr) {
-      const hour = parseInt(task.start_time.split(':')[0]);
-      if (hour < 12) return t('morning_log');
-      if (hour < 17) return t('afternoon_log');
-      return t('evening_log');
-    }
-    
-    if (diffDays === 1) return t('tomorrow_intel');
-    if (diffDays <= 7) return t('next_7_days');
-    return t('next_month_data');
+    const hour = parseInt(task.start_time.split(':')[0]);
+    if (hour < 12) return t('morning_log');
+    if (hour < 17) return t('afternoon_log');
+    return t('evening_log');
   };
+  const filteredTasks = tasks.filter(t => t.task_date === selectedDate);
 
-  const categoryOrder = [
-    t('morning_log'), t('afternoon_log'), t('evening_log'), 
-    t('tomorrow_intel'), t('next_7_days'), t('next_month_data')
-  ];
-
-  // Logic to hide tasks when > 10 exist
-  const visibleTasks = showAll ? tasks : tasks.slice(0, 10);
+  // Generate Calendar Days
+  const getDaysInMonth = () => {
+    const now = new Date(selectedDate);
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const days = new Date(year, month + 1, 0).getDate();
+    return Array.from({ length: days }, (_, i) => {
+      const d = new Date(year, month, i + 1);
+      return d.toISOString().split('T')[0];
+    });
+  };
 
   return (
-    <div className="schedule-scope space-y-8 p-4 max-w-4xl mx-auto pb-32">
+    <div className="schedule-scope space-y-8 p-4 max-w-4xl mx-auto pb-32 text-[#3e2723]">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
-        .schedule-scope * { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; text-transform: uppercase; }
-        
-        .party-panel {
-          background: white;
-          border: 4px solid black;
-          box-shadow: 8px 8px 0 0 rgba(0,0,0,0.1);
-          padding: 24px;
-        }
-
-        .party-input {
-          background: white;
-          border: 4px solid black;
-          color: black;
-          padding: 12px;
-          font-size: 8px;
-          outline: none;
-          width: 100%;
-        }
-
-        .find-btn {
-          background: #ffaa00;
-          color: black;
-          border: 4px solid black;
-          font-size: 10px;
-          padding: 12px 24px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          box-shadow: 2px 2px 0 0 black;
-        }
-        .find-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0 0 black; }
-
-        .party-row {
-          background: white;
-          border: 4px solid black;
-          margin-bottom: 12px;
-          padding: 16px;
-        }
-
-        .section-header {
-          font-size: 10px;
-          border-bottom: 2px solid black;
-          padding-bottom: 4px;
-          margin-bottom: 16px;
-          display: inline-block;
-        }
-
-        .time-badge {
-          color: #64748b;
-          font-size: 8px;
-          margin-right: 16px;
-        }
-
-        .active-cursor {
-          color: white;
-          animation: finger-bob 0.6s steps(2, start) infinite;
-        }
-
-        @keyframes finger-bob {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(5px); }
-        }
+        .schedule-scope *:not(i) { font-family: 'Press Start 2P', 'LXGW WenKai TC' , monospace !important; text-transform: uppercase; }
+        .ledger-panel-wood { background: #fffdf5; border: 4px solid #3e2723; box-shadow: 8px 8px 0 0 #2a1b0a; padding: 24px; position: relative; }
+        .nature-input-field { background: #fdfbf7; border: 4px solid #5d4037; padding: 12px; font-size: 8px; width: 100%; color: #3e2723; outline: none; }
+        .action-btn-wood { background: #8d6e63; color: white; border: 4px solid #3e2723; font-size: 10px; padding: 12px 24px; cursor: pointer; box-shadow: 4px 4px 0 0 #2a1b0a; display: flex; align-items: center; gap: 8px; }
+        .ui-label-nature { font-size: 10px; border-bottom: 4px solid #4caf50; padding-bottom: 6px; margin-bottom: 20px; display: inline-flex; align-items: center; gap: 10px; font-weight: bold; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .calendar-day { border: 2px solid #3e2723; height: 80px; padding: 4px; background: white; cursor: pointer; position: relative; }
+        .calendar-day.active { background: #ffaa00; }
+        .calendar-day.today { border-color: #4caf50; border-width: 4px; }
       `}</style>
 
-      {/* 1. SEARCH/INPUT PANEL */}
-      <div className="party-panel">
-        <h3 className="section-header mb-6">{t('log_new_entry')}</h3>
-        <div className="flex flex-col gap-4">
-          <input 
-            type="text" 
-            placeholder={t('input_quest_title')}
-            value={newTitle} 
-            onChange={e => setNewTitle(e.target.value)} 
-            className="party-input" 
-          />
-          <div className="flex flex-wrap gap-4">
-            <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="party-input flex-1" />
-            <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className="party-input flex-1" />
-            <button onClick={addTask} className="find-btn">
-              <i className="fas fa-plus"></i> {t('execute')}
-            </button>
-          </div>
+      {/* 1. NAVIGATION HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() - 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            className="action-btn-wood !px-4"
+          >
+            <i className="fas fa-chevron-left"></i>
+          </button>
+          
+          <h2 className="text-[10px] bg-[#fffdf5] border-4 border-[#3e2723] px-6 py-2 shadow-[4px_4px_0_0_#2a1b0a]">
+            {selectedDate === new Date().toISOString().split('T')[0] ? 'TODAY' : selectedDate}
+          </h2>
+
+          <button 
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() + 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            className="action-btn-wood !px-4"
+          >
+            <i className="fas fa-chevron-right"></i>
+          </button>
         </div>
+
+        <button 
+          onClick={() => setViewMode(viewMode === 'day' ? 'month' : 'day')} 
+          className="action-btn-wood !bg-[#3e2723]"
+        >
+          <i className={`fas ${viewMode === 'day' ? 'fa-map' : 'fa-calendar-day'}`}></i>
+          {viewMode === 'day' ? 'WORLD MAP' : 'DAILY PATH'}
+        </button>
       </div>
 
-      {/* 2. CATEGORIZED TASK LIST */}
-      <div className="party-panel min-h-[400px]">
-        {tasks.length === 0 ? (
-          <div className="flex h-64 items-center justify-center">
-            <p className="text-[#94a3b8] text-[8px] tracking-widest">{t('log_empty')}</p>
-          </div>
-        ) : (
-          <div className="space-y-10">
-            {categoryOrder.map(cat => {
-              const catTasks = visibleTasks.filter(t => getDetailedCategory(t) === cat);
-              if (catTasks.length === 0) return null;
-
+      {viewMode === 'month' ? (
+        /* 2. WORLD MAP (CALENDAR VIEW) */
+        <div className="ledger-panel-wood animate-quest-pop">
+          <h3 className="ui-label-nature">CHRONICLE MAP</h3>
+          <div className="calendar-grid">
+            {['S','M','T','W','T','F','S'].map(d => (
+              <div key={d} className="text-center text-[8px] font-bold mb-2">{d}</div>
+            ))}
+            {getDaysInMonth().map(date => {
+              const taskCount = tasks.filter(t => t.task_date === date).length;
               return (
-                <section key={cat}>
-                  <h3 className="section-header">{cat}</h3>
-                  <div className="space-y-4 mt-4">
-                    {catTasks.map(task => (
-                      <div key={task.id} className="relative flex items-center">
-                        {editingTask?.id === task.id && (
-                          <span className="absolute -left-8 active-cursor">
-                            <i className="fas fa-hand-point-right"></i>
-                          </span>
-                        )}
-                        
-                        <div className={`party-row flex-1 flex items-center justify-between ${editingTask?.id === task.id ? 'bg-amber-50' : ''}`}>
-                          {editingTask?.id === task.id ? (
-                            <div className="flex flex-wrap gap-3 flex-1 items-center">
-                              <input 
-                                className="party-input flex-1" 
-                                value={editingTask.title} 
-                                onChange={e => setEditingTask({...editingTask, title: e.target.value})} 
-                              />
-                              <div className="flex gap-4 ml-auto">
-                                <button onClick={saveEdit} className="text-blue-600 text-[8px] underline">[{t('save')}]</button>
-                                <button onClick={() => setEditingTask(null)} className="text-red-500 text-[8px] underline">[{t('exit')}]</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div className="flex items-center">
-                                <span className="time-badge">{task.start_time.slice(0,5)}</span>
-                                <span className="text-[10px] text-black tracking-tight">{task.title}</span>
-                              </div>
-                              <div className="flex gap-4">
-                                <button onClick={() => setEditingTask(task)} className="text-amber-600 text-[8px]">{t('edit')}</button>
-                                <button onClick={() => deleteTask(task.id)} className="text-red-500 text-[8px]">{t('drop')}</button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+                <div 
+                  key={date} 
+                  onClick={() => { setSelectedDate(date); setViewMode('day'); }}
+                  className={`calendar-day ${date === selectedDate ? 'active' : ''} ${date === new Date().toISOString().split('T')[0] ? 'today' : ''}`}
+                >
+                  <span className="text-[8px]">{date.split('-')[2]}</span>
+                  {taskCount > 0 && (
+                    <div className="absolute bottom-1 right-1 flex gap-1">
+                      <div className="w-2 h-2 bg-[#3e2723] rounded-full animate-pulse"></div>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        /* 3. DAILY VIEW */
+        <div className="space-y-8 animate-quest-pop">
+          {/* ADD QUEST */}
+          <div className="ledger-panel-wood">
+            <h3 className="ui-label-nature">POST A QUEST</h3>
+            <div className="flex flex-col gap-4">
+              <input type="text" placeholder="OBJECTIVE..." value={newTitle} onChange={e => setNewTitle(e.target.value)} className="nature-input-field" />
+              <div className="flex gap-4">
+                <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} className="nature-input-field flex-1" />
+                <button onClick={addTask} className="action-btn-wood">DEPLOY</button>
+              </div>
+            </div>
+          </div>
 
-      {/* 3. FETCH MORE DATA BUTTON */}
-      {tasks.length > 10 && (
-        <button 
-          onClick={() => setShowAll(!showAll)} 
-          className="w-full py-6 party-panel text-black text-[10px] hover:bg-slate-50 transition-colors flex items-center justify-center gap-4"
-        >
-          {showAll ? (
-            <> <i className="fas fa-chevron-up"></i> {t('collapse_log')} </>
-          ) : (
-            <> <i className="fas fa-search"></i> {t('fetch_more')}_{tasks.length - 10}_{t('more_entries')} </>
-          )}
-        </button>
+          {/* PATH VIEW (The Mini-Timeline) */}
+          <div className="ledger-panel-wood">
+            <h3 className="ui-label-nature">THE DAY'S PATH</h3>
+            <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
+              {hours.map(h => {
+                const t = getTaskAtHour(h);
+                return (
+                  <div key={h} className={`h-12 border-2 flex flex-col items-center justify-center transition-all ${t ? 'bg-[#ffaa00] border-[#3e2723] scale-105 shadow-[2px_2px_0_0_#2a1b0a]' : 'bg-white opacity-30 border-dashed border-[#d7ccc8]'}`}>
+                    <span className="text-[5px]">{h}:00</span>
+                    {t && <i className="fas fa-exclamation-circle text-[8px]"></i>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* QUEST LOG */}
+          <div className="ledger-panel-wood min-h-[300px]">
+            {categoryOrder.map(cat => {
+              const catTasks = filteredTasks.filter(t => getDetailedCategory(t) === cat);
+              if (!catTasks.length) return null;
+              return (
+                <section key={cat} className="mb-8">
+                  <h3 className="ui-label-nature">{cat}</h3>
+                  {catTasks.map(task => (
+                    <div key={task.id} onClick={() => setSelectedQuest(task)} className="border-4 border-[#3e2723] bg-white mb-3 p-4 flex justify-between items-center hover:translate-x-1 transition-transform cursor-pointer shadow-[4px_4px_0_0_rgba(0,0,0,0.05)]">
+                      <div className="flex items-center gap-4">
+                        <span className="text-[8px] bg-[#efebe9] p-1 border-2 border-[#3e2723]">{task.start_time.slice(0, 5)}</span>
+                        <span className="text-[9px] font-bold">{task.title}</span>
+                      </div>
+                      <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="text-red-700 p-2">
+                        <i className="fas fa-trash-alt"></i>
+                      </button>
+                    </div>
+                  ))}
+                </section>
+              );
+            })}
+            {filteredTasks.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 opacity-30">
+                <i className="fas fa-scroll text-4xl mb-4"></i>
+                <p className="text-[8px]">No quests logged for this date.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 4. QUEST DETAIL MODAL (Subtasks & Notes) */}
+      {selectedQuest && (
+        <div className="modal-overlay px-4">
+          <div className="ledger-panel-wood w-full max-w-lg max-h-[90vh] overflow-y-auto animate-quest-pop shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <div className="flex justify-between items-start border-b-4 border-[#3e2723] pb-4 mb-6">
+              <div>
+                <h2 className="text-[12px] font-bold">{selectedQuest.title}</h2>
+                <p className="text-[7px] mt-2 opacity-60">TIME: {selectedQuest.start_time.slice(0, 5)}</p>
+              </div>
+              <button onClick={() => setSelectedQuest(null)}><i className="fas fa-times text-xl"></i></button>
+            </div>
+
+            <div className="space-y-6">
+              <section>
+                <h4 className="ui-label-nature !text-[8px]">SUB-OBJECTIVES</h4>
+                <div className="space-y-2">
+                  {(selectedQuest.sub_tasks || []).map(st => (
+                    <div key={st.id} className="flex items-center gap-3 p-2 border-2 bg-white">
+                      <input type="checkbox" checked={st.done} onChange={() => toggleSubTask(st.id)} className="w-4 h-4" />
+                      <span className={`text-[8px] ${st.done ? 'line-through opacity-50' : ''}`}>{st.text}</span>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 mt-4">
+                    <input type="text" placeholder="ADD..." value={newSubTaskText} onChange={e => setNewSubTaskText(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSubTask()} className="nature-input-field flex-1" />
+                    <button onClick={addSubTask} className="action-btn-wood !py-0"><i className="fas fa-plus"></i></button>
+                  </div>
+                </div>
+              </section>
+
+              <section>
+                <h4 className="ui-label-nature !text-[8px]">MEMOS</h4>
+                <textarea value={memoText} onChange={e => setMemoText(e.target.value)} className="nature-input-field min-h-[100px]" />
+              </section>
+
+              <div className="flex gap-4">
+                <button onClick={updateQuestDetails} className="action-btn-wood flex-1 !bg-[#4caf50]">SAVE LOG</button>
+                <button onClick={() => setSelectedQuest(null)} className="action-btn-wood flex-1">BACK</button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

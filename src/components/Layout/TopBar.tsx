@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
-import '../../index.css';
 
 interface TopBarProps {
   user: User;
@@ -21,93 +20,109 @@ export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
 
   const displayCoins = user.coins ?? 0;
 
-  // Function to toggle language
   const handleLanguageChange = () => {
     const newLang = i18n.language === 'EN' ? 'ZH' : 'EN';
     i18n.changeLanguage(newLang);
   };
 
   return (
-    <header className="h-20 bg-[#111] border-b-4 border-black flex items-center justify-between px-4 md:px-8 z-10 pixel-font text-white">
+    <header className="h-20 bg-[#2e7d32] border-b-6 border-[#3e2723] flex items-center justify-between px-4 md:px-8 z-50 pixel-font text-white shadow-[0_4px_0_0_rgba(0,0,0,0.2)]">
       
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
         .pixel-font { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace; }
         
-        .hud-box {
-          background: #333;
-          border: 4px solid #666;
-          box-shadow: 4px 4px 0 0 black;
-          padding: 8px 12px;
+        .nature-hud-box {
+          background: #3e2723;
+          border: 4px solid #5d4037;
+          box-shadow: 4px 4px 0 0 #1a0f0a;
+          padding: 6px 10px;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           transition: all 0.1s;
         }
 
-        .coin-box {
-          border-color: #ffd700;
+        .gold-glow {
+          color: #ffaa00;
+          text-shadow: 2px 2px 0px #000;
         }
 
-        .lang-box:hover {
-          background: #444;
-          border-color: #fff;
+        .nature-btn:hover {
+          background: #4e342e;
           transform: translateY(-2px);
+          box-shadow: 4px 6px 0 0 #1a0f0a;
         }
 
-        .avatar-frame {
-          border: 4px solid white;
-          box-shadow: 4px 4px 0 0 black;
-          background: #444;
+        .avatar-shrine {
+          border: 4px solid #fffdf5;
+          box-shadow: 4px 4px 0 0 #1a0f0a;
+          background: #8d6e63;
           image-rendering: pixelated;
         }
 
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          background: #00ff00;
-          border: 1px solid black;
-          display: inline-block;
-          margin-right: 8px;
+        .xp-bar-mini {
+          width: 40px;
+          height: 6px;
+          background: #1b5e20;
+          border: 2px solid #000;
+          margin-top: 4px;
+          overflow: hidden;
+        }
+
+        .xp-fill {
+          width: 60%;
+          height: 100%;
+          background: #4caf50;
         }
       `}</style>
 
-      {/* Left Side: Currency & Settings HUD */}
-      <div className="flex items-center gap-4">
-        {/* COIN HUD */}
-        <div className="hud-box coin-box">
-          <i className="fas fa-coins text-[#ffd700] text-sm animate-pulse"></i>
-          <span className="text-[10px] tracking-widest text-[#ffd700]">{t('gp')}_{displayCoins}</span>
+      {/* Left Side: Resources & Translation */}
+      <div className="flex items-center gap-3 md:gap-4">
+        {/* GOLD POUCH */}
+        <div className="nature-hud-box border-[#ffaa00]">
+          <i className="fas fa-coins gold-glow text-xs animate-bounce"></i>
+          <span className="text-[8px] md:text-[10px] tracking-widest gold-glow">
+            {displayCoins}G
+          </span>
         </div>
 
-        {/* LANGUAGE TOGGLE HUD */}
-        <button onClick={handleLanguageChange} className="hud-box lang-box">
-          <i className="fas fa-globe text-sky-400 text-sm"></i>
-          <span className="text-[10px] tracking-widest text-white">
-            {i18n.language === 'EN' ? 'ZH' : 'EN'}
+        {/* WORLD TONGUE (Language) */}
+        <button onClick={handleLanguageChange} className="nature-hud-box nature-btn">
+          <i className="fas fa-scroll text-stone-300 text-xs"></i>
+          <span className="text-[8px] md:text-[10px] tracking-widest text-white">
+            {i18n.language}
           </span>
         </button>
       </div>
 
-      {/* Right Side: Player Info */}
-      <div className="flex items-center gap-6">
-        <div className="text-right hidden sm:block border-r-4 border-[#333] pr-6">
-          <p className="text-[10px] mb-2 tracking-tighter">{displayName}</p>
-          <div className="flex items-center justify-end">
-            <span className="status-dot"></span>
-            <p className="text-[8px] text-[#00ff00]">{user.status || t('ready')}</p>
+      {/* Right Side: Adventurer Profile */}
+      <div className="flex items-center gap-4 md:gap-6">
+        <div className="text-right hidden sm:block">
+          <p className="text-[10px] mb-1 tracking-tighter text-[#fffdf5] uppercase font-bold">
+            {displayName}
+          </p>
+          <div className="flex flex-col items-end">
+            <div className="flex items-center gap-2">
+               <div className="w-2 h-2 bg-[#00ff00] border border-black animate-pulse"></div>
+               <p className="text-[7px] text-[#a5d6a7]">{user.status || t('ready')}</p>
+            </div>
+            {/* Just a decorative XP bar to sell the RPG vibe */}
+            <div className="xp-bar-mini">
+              <div className="xp-fill"></div>
+            </div>
           </div>
         </div>
 
         <div className="relative group" onClick={onAvatarClick}>
           <img 
             src={avatarUrl} 
-            alt="HUD_AVATAR" 
-            className="w-12 h-12 avatar-frame cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+            alt="HERO_AVATAR" 
+            className="w-10 h-10 md:w-12 md:h-12 avatar-shrine cursor-pointer hover:rotate-3 transition-transform"
           />
-          <div className="absolute -bottom-2 -left-2 bg-white text-black text-[6px] px-1 border-2 border-black font-bold">
-            LV_1
+          <div className="absolute -bottom-2 -right-2 bg-[#ffaa00] text-[#3e2723] text-[6px] px-1.5 py-0.5 border-2 border-[#3e2723] font-bold shadow-sm">
+            LV.1
           </div>
         </div>
       </div>

@@ -16,8 +16,8 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
   const [isPending, setisPending] = useState(false);
   const { t } = useTranslation();
 
-  const userLogsIn = async (e: React.FormEvent<HTMLFormElement>) => { // Bruh FormEvent might be phased out so look for updates LOL
-    e.preventDefault(); // Prevents the entire page refresh DO NOT DELETE THE APP WILL DIE :(
+  const userLogsIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setisPending(true);
 
     try {
@@ -50,88 +50,116 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FBBF24] p-4">
+    <div className="min-h-screen flex items-center justify-center pattern-grass p-4">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
         
-        .auth-scope * {
-          font-family: 'Press Start 2P', 'LXGW WenKai TC', cursive !important;
-          text-transform: uppercase;
+        .auth-scope *:not(i) { font-family: 'Press Start 2P', 'LXGW WenKai TC' , monospace !important; text-transform: uppercase; }
+        .auth-scope i { font-family: "Font Awesome 6 Free" !important; font-weight: 900; text-transform: none !important; }
+
+        .pattern-grass {
+          background-color: #4caf50;
+          background-image: linear-gradient(0deg, #388e3c 1px, transparent 1px),
+                            linear-gradient(90deg, #388e3c 1px, transparent 1px);
+          background-size: 8px 8px;
         }
 
         .pixel-card {
-          background: white;
-          border: 6px solid black;
-          box-shadow: 12px 12px 0 0 rgba(0,0,0,1);
+          background: #fffdf5;
+          border: 6px solid #3e2723;
+          box-shadow: 12px 12px 0 0 #2a1b0a;
+          background-image: repeating-linear-gradient(90deg, #fdf4db, #fdf4db 2px, transparent 2px, transparent 4px),
+                            repeating-linear-gradient(0deg, #fdf4db, #fdf4db 2px, transparent 2px, transparent 4px);
+          background-size: 8px 8px;
         }
 
         .pixel-input {
-          background: white;
-          border: 4px solid black;
+          background: #fdfbf7;
+          border: 4px solid #5d4037;
           padding: 12px;
           font-size: 8px;
           outline: none;
           width: 100%;
+          color: #3e2723;
         }
 
         .pixel-btn {
-          background: #FBBF24;
-          border: 4px solid black;
+          background: #8d6e63;
+          color: white;
+          border: 4px solid #3e2723;
           padding: 16px;
           font-size: 10px;
-          box-shadow: 4px 4px 0 0 black;
+          box-shadow: 4px 4px 0 0 #2a1b0a;
           transition: all 0.1s;
         }
 
         .pixel-btn:active {
           transform: translate(2px, 2px);
-          box-shadow: 2px 2px 0 0 black;
+          box-shadow: 0px 0px 0 0 #2a1b0a;
         }
 
         .tab-btn {
           padding: 12px;
           font-size: 8px;
-          border-bottom: 4px solid transparent;
+          border-bottom: 6px solid #d7ccc8;
+          color: #8d6e63;
         }
 
         .tab-btn.active {
-          border-bottom: 4px solid #FBBF24;
-          color: black;
+          border-bottom: 6px solid #4caf50;
+          color: #1b5e20;
+        }
+
+        .stone-header {
+          background: #78909c;
+          border-bottom: 6px solid #37474f;
+          position: relative;
+        }
+
+        .stone-header::after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 20px;
+          height: 10px;
+          background: #37474f;
+          clip-path: polygon(0 0, 50% 100%, 100% 0);
         }
       `}</style>
 
       <div className="auth-scope max-w-md w-full pixel-card overflow-hidden">
-        {/* Top Banner */}
-        <div className="bg-black p-8 text-white text-center border-b-4 border-black">
-          <div className="w-16 h-16 bg-white border-4 border-[#FBBF24] flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-terminal text-black text-2xl"></i>
+        {/* Title Screen Header */}
+        <div className="stone-header p-8 text-white text-center">
+          <div className="w-16 h-16 bg-[#fffdf5] border-4 border-[#37474f] flex items-center justify-center mx-auto mb-4 shadow-[4px_4px_0_0_#1b262a]">
+            <i className="fas fa-scroll text-[#3e2723] text-2xl"></i>
           </div>
-          <h1 className="text-xl tracking-tighter mb-2">STUDILIB</h1>
-          <p className="text-[8px] text-amber-400">{t('welcome_studilib')}</p>
+          <h1 className="text-xl tracking-tighter mb-2 text-[#eceff1]" style={{ textShadow: '4px 4px 0px #37474f' }}>STUDILIB</h1>
+          <p className="text-[8px] text-[#b0bec5]">{t('welcome_studilib')}</p>
         </div>
 
         <div className="p-8">
-          {/* Toggle Tabs */}
-          <div className="flex mb-8 border-b-4 border-black">
+          <div className="flex mb-8">
             <button
               onClick={() => setisLoggedIn(true)}
-              className={`flex-1 tab-btn ${isLoggedIn ? 'active' : 'opacity-40'}`}
+              className={`flex-1 tab-btn ${isLoggedIn ? 'active' : 'opacity-60'}`}
             >
-              [ {t('login')} ]
+              {t('login')}
             </button>
             <button
               onClick={() => setisLoggedIn(false)}
-              className={`flex-1 tab-btn ${!isLoggedIn ? 'active' : 'opacity-40'}`}
+              className={`flex-1 tab-btn ${!isLoggedIn ? 'active' : 'opacity-60'}`}
             >
-              [ {t('signup')} ]
+              {t('signup')}
             </button>
           </div>
 
           <form onSubmit={userLogsIn} className="space-y-6">
             {!isLoggedIn && (
               <div>
-                <label className="block text-[8px] mb-2">{t('user_id')}</label>
+                <label className="block text-[8px] mb-2 text-[#5d4037]">{t('user_id')}</label>
                 <input
                   type="text"
                   value={formData.username}
@@ -143,7 +171,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
               </div>
             )}
             <div>
-              <label className="block text-[8px] mb-2">{t('email_address')}</label>
+              <label className="block text-[8px] mb-2 text-[#5d4037]">{t('email_address')}</label>
               <input
                 type="email"
                 value={formData.email}
@@ -154,7 +182,7 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
               />
             </div>
             <div>
-              <label className="block text-[8px] mb-2">{t('password')}</label>
+              <label className="block text-[8px] mb-2 text-[#5d4037]">{t('password')}</label>
               <input
                 type="password"
                 value={formData.password}
@@ -170,12 +198,12 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
               disabled={isPending}
               className="w-full pixel-btn disabled:opacity-50"
             >
-              {isPending ? t('processing') : (isLoggedIn ? t('initiate_session') : t('register_user'))}
+              {isPending ? t('processing') : (isLoggedIn ? "👉 " + t('initiate_session') : "🌲 " + t('register_user'))}
             </button>
           </form>
 
-          <p className="text-[6px] text-center mt-8 text-gray-400 tracking-widest">
-            {t('secure_encryption')}
+          <p className="text-[6px] text-center mt-8 text-[#a1887f] tracking-widest italic">
+            -- {t('secure_encryption')} --
           </p>
         </div>
       </div>

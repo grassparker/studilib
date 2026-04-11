@@ -5,44 +5,31 @@ import { TinyHomeView } from './Home/TinyHomeView';
 import { Overview } from './Dashboard/Overview';
 import { Friends } from './Friends/Friends';
 import { User } from '../types';
-import ProfileModal from './Profile/ProfileModal';
-import { TopBar } from './Layout/TopBar';
 import { Schedule } from './Schedule/Schedule';
+import { Routes, Route } from 'react-router-dom';
 
-
+// 1. UPDATED INTERFACE: Removed activeTab
 interface DashboardProps {
-  activeTab: string;
   user: User;
   updateCoins: (amount: number) => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ activeTab, user, updateCoins }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, updateCoins }) => {
   const { t } = useTranslation();
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   return (
-      <div className="flex-1 overflow-y-auto">
-        {(() => {
-          switch (activeTab) {
-            case 'dashboard':
-              return <Overview user={user} />;
-            case 'focus':
-              return <FocusRoom updateCoins={updateCoins} />;
-            case 'tinyhome':
-              return <TinyHomeView user={user} updateCoins={updateCoins} />;
-            case 'social':
-              return <Friends user={user} />;
-            case 'schedule':
-              return <Schedule user={user} />;
-            default:
-              return (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                  <i className="fas fa-tools text-4xl mb-4"></i>
-                  <p className="font-medium">Tab "{activeTab}" {t('under_construction')}</p>
-                </div>
-              );
-          }
-        })()}
-      </div>
+    <Routes>
+      {/* Root of the dashboard (/app) */}
+      <Route path="/" element={<Overview user={user} />} />
+      
+      {/* Sub-paths (e.g., /app/schedule) */}
+      <Route path="schedule" element={<Schedule user={user} />} />
+      <Route path="focus" element={<FocusRoom user={user} updateCoins={updateCoins} />} />
+      <Route path="tinyhome" element={<TinyHomeView user={user} updateCoins={updateCoins} />} />
+      <Route path="social" element={<Friends user={user} />} />
+      
+      {/* Catch-all for mistakes within /app */}
+      <Route path="*" element={<div>Quest Location Not Found...</div>} />
+    </Routes>
   );
 };
