@@ -8,6 +8,7 @@ export const GuildDetail: React.FC<{ user: any }> = ({ user }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [guild, setGuild] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'timer' | 'chat'>('timer'); // Mobile Tab State
 
   useEffect(() => {
     const fetchGuildData = async () => {
@@ -34,60 +35,54 @@ export const GuildDetail: React.FC<{ user: any }> = ({ user }) => {
       .social-scope { 
           font-family: 'Press Start 2P', monospace !important; 
           text-transform: uppercase;
-          background-color: #f0f0f0;
+          background-color: #f1f8e9; /* Nature Green Theme */
       }
 
-      /* Containers */
-      .pixel-box-white { border: 4px solid black; background: white; box-shadow: 6px 6px 0 0 rgba(0,0,0,0.1); padding: 15px; }
-      .pixel-box-blue { border: 4px solid black; background: #e0f2fe; box-shadow: 6px 6px 0 0 #7dd3fc; padding: 15px; }
-      
-      /* Buttons */
-      .pixel-btn-action { border: 4px solid black; background: #ffaa00; padding: 8px; box-shadow: inset -3px -3px 0 0 #cc8800; cursor: pointer; display: flex; align-items: center; gap: 8px; }
-      .pixel-btn-action:active { box-shadow: inset 3px 3px 0 0 #cc8800; transform: translateY(1px); }
+      .pixel-box { border: 4px solid #3e2723; background: white; box-shadow: 4px 4px 0 0 #2a1b0a; padding: 12px; }
+      .pixel-btn-tab { border: 4px solid #3e2723; background: #8d6e63; color: white; padding: 10px; font-size: 8px; flex: 1; text-align: center; }
+      .pixel-btn-tab.active { background: #4caf50; box-shadow: inset 4px 4px 0 0 #1b5e20; }
 
-      /* Scrollbar Logic */
-      .custom-scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: black #eee; }
-      .custom-scroll::-webkit-scrollbar { width: 8px; }
-      .custom-scroll::-webkit-scrollbar-track { background: #eee; border-left: 2px solid black; }
-      .custom-scroll::-webkit-scrollbar-thumb { background: black; border: 2px solid #eee; }
+      .custom-scroll { overflow-y: auto; }
+      .custom-scroll::-webkit-scrollbar { width: 6px; }
+      .custom-scroll::-webkit-scrollbar-thumb { background: #3e2723; }
 
-      /* Text Wrap Fix for Chat */
-      .social-scope * { overflow-wrap: break-word; word-wrap: break-word; }
+      /* Mobile UI Tweaks */
+      @media (max-width: 1024px) {
+        .mobile-content-h { height: calc(100vh - 220px); }
+      }
     `}</style>
   );
 
-  if (!guild) return <div className="social-scope h-screen flex items-center justify-center">LOADING_DATA...</div>;
+  if (!guild) return <div className="social-scope h-screen flex items-center justify-center">LOADING...</div>;
 
   return (
-    <div className="social-scope h-screen flex flex-col p-4 md:p-6 overflow-hidden">
+    <div className="social-scope h-screen flex flex-col p-2 md:p-6 overflow-hidden">
       {pixelStyles}
 
-      {/* HEADER - Shrink-0 prevents it from squishing */}
-      <header className="pixel-box-white flex justify-between items-center mb-6 shrink-0">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="pixel-btn-action bg-slate-200 !shadow-none">
-            <i className="fas fa-arrow-left"></i>
+      {/* 1. COMPACT HEADER */}
+      <header className="pixel-box flex justify-between items-center mb-3 shrink-0 bg-[#fffdf5]">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <button onClick={() => navigate(-1)} className="text-[#3e2723] hover:scale-110 transition-transform">
+            <i className="fas fa-chevron-left"></i>
           </button>
-          <h1 className="text-[10px] md:text-[14px] font-bold text-blue-600 truncate"># {guild.name}</h1>
+          <h1 className="text-[8px] md:text-[12px] truncate">🛡️ {guild.name}</h1>
         </div>
-        <div className="text-[8px] bg-green-100 px-3 py-1 border-2 border-black">
-          {guild.group_members.length} ONLINE
+        <div className="hidden md:block text-[6px] text-[#8d6e63]">
+          {guild.group_members.length} ADVENTURERS
         </div>
       </header>
 
-      {/* MAIN VIEWPORT - This grid fills the remaining screen height */}
-      <div className="flex flex-col lg:grid lg:grid-cols-12 gap-6 flex-1 min-h-0">
+      {/* 2. MAIN LAYOUT */}
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         
-        {/* LEFT: PARTY LIST (2 Columns) */}
-        <aside className="lg:col-span-2 order-2 lg:order-1 flex flex-col min-h-0">
-          <section className="pixel-box-white flex-1 flex flex-col min-h-0">
-            <h2 className="text-[8px] mb-4 underline shrink-0">PARTY</h2>
-            <div className="flex-1 custom-scroll space-y-3 pr-2">
+        {/* PARTY LIST (Sidebar on Desktop, Hidden on Mobile) */}
+        <aside className="hidden lg:flex flex-col w-48 shrink-0 min-h-0">
+          <section className="pixel-box flex-1 flex flex-col min-h-0">
+            <h2 className="text-[7px] mb-4 border-b-2 border-[#3e2723] pb-2">PARTY</h2>
+            <div className="flex-1 custom-scroll space-y-3">
               {guild.group_members.map((m: any) => (
-                <div key={m.user_id} className="flex items-center gap-2 border-b border-dotted border-slate-200 pb-2">
-                  <div className="w-6 h-6 border-2 border-black bg-white shrink-0 overflow-hidden">
-                    <img src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${m.profiles?.username}`} alt="avatar" />
-                  </div>
+                <div key={m.user_id} className="flex items-center gap-2">
+                  <img src={m.profiles?.avatar_url} className="w-6 h-6 border-2 border-[#3e2723]" alt="av" />
                   <span className="text-[6px] truncate">{m.profiles?.username}</span>
                 </div>
               ))}
@@ -95,44 +90,51 @@ export const GuildDetail: React.FC<{ user: any }> = ({ user }) => {
           </section>
         </aside>
 
-        {/* CENTER: MISSION CLOCK (7 Columns) */}
-        <main className="lg:col-span-7 order-1 lg:order-2 flex flex-col min-h-0">
-          <section className="pixel-box-white flex-1 flex flex-col items-center justify-center relative bg-white">
-            <div className="absolute top-4 left-4 text-[6px] text-slate-300">MOD_CORE_SYNC: OK</div>
-            <h2 className="text-[10px] mb-8 tracking-[0.2em]">[ MISSION_CLOCK ]</h2>
+        {/* TIMER & CHAT AREA */}
+        <div className="flex-1 flex flex-col min-h-0">
+          
+          {/* MOBILE TABS (Only visible < 1024px) */}
+          <div className="flex lg:hidden gap-2 mb-3 shrink-0">
+            <button onClick={() => setActiveTab('timer')} className={`pixel-btn-tab ${activeTab === 'timer' ? 'active' : ''}`}>
+              <i className="fas fa-clock mr-2"></i> FOCUS
+            </button>
+            <button onClick={() => setActiveTab('chat')} className={`pixel-btn-tab ${activeTab === 'chat' ? 'active' : ''}`}>
+              <i className="fas fa-comment-dots mr-2"></i> COMMS
+            </button>
+          </div>
+
+          <div className="flex-1 flex flex-col lg:flex-row gap-4 min-h-0">
             
-            <div className="w-full flex justify-center">
-               <SharedPomodoro 
-                  groupId={guild.id} 
-                  isLeader={user.id === guild.creator_id} 
-                />
-            </div>
+            {/* TIMER SECTION */}
+            <main className={`${activeTab === 'timer' ? 'flex' : 'hidden'} lg:flex flex-[2] flex-col min-h-0`}>
+              <section className="pixel-box flex-1 flex flex-col items-center justify-center bg-white relative">
+                <div className="absolute top-2 left-2 text-[5px] text-slate-300">GUILD_SYNC_V.4</div>
+                <SharedPomodoro groupId={guild.id} isLeader={user.id === guild.creator_id} />
+              </section>
+            </main>
 
-            <div className="mt-12 text-[6px] text-slate-400 animate-pulse">
-               AWAITING_COMMAND_FROM_LEADER...
-            </div>
-          </section>
-        </main>
-
-        {/* RIGHT: COMMS (3 Columns) */}
-        <aside className="lg:col-span-3 order-3 flex flex-col min-h-0">
-          <section className="pixel-box-blue flex-1 flex flex-col overflow-hidden">
-            <h2 className="text-[8px] mb-2 flex items-center gap-2 shrink-0">
-                <i className="fas fa-comments"></i> COMMS_LINK
-            </h2>
-            <div className="flex-1 bg-white border-4 border-black flex flex-col overflow-hidden">
-                {/* Scroll container for Chat */}
-                <div className="flex-1 custom-scroll p-2">
-                    <Chat 
-                      groupId={guild.id} 
-                      userId={user.id} 
-                      username={user.username || user.email?.split('@')[0] || 'Hero'} 
-                    />
+            {/* CHAT SECTION */}
+            <aside className={`${activeTab === 'chat' ? 'flex' : 'hidden'} lg:flex flex-1 flex-col min-h-0`}>
+              <section className="pixel-box flex-1 flex flex-col bg-[#fffdf5] overflow-hidden">
+                <h2 className="text-[7px] mb-2 hidden lg:block border-b-2 border-[#3e2723] pb-2">GUILD_CHAT</h2>
+                <div className="flex-1 overflow-hidden flex flex-col bg-white border-2 border-[#3e2723]">
+                  <Chat 
+                    groupId={guild.id} 
+                    userId={user.id} 
+                    username={user.username || user.email?.split('@')[0] || 'Hero'} 
+                  />
                 </div>
-            </div>
-          </section>
-        </aside>
+              </section>
+            </aside>
 
+          </div>
+        </div>
+
+      </div>
+
+      {/* 3. MOBILE FOOTER INFO (Optional) */}
+      <div className="lg:hidden mt-2 text-center">
+        <p className="text-[5px] text-[#8d6e63]">🛡️ CURRENTLY DEPLOYED: {guild.group_members.length} USERS</p>
       </div>
     </div>
   );
