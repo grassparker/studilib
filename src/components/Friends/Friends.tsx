@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
+import { User } from '../../types';
 import FriendsProfile from './FriendsProfile';
 import { useNavigate } from 'react-router-dom';
 
@@ -9,36 +9,30 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // --- STATE ---
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
-  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-  const [friends, setFriends] = useState<any[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
-  const [groups, setGroups] = useState<any[]>([]);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-  const [searchEmail, setSearchEmail] = useState('');
-  const [newGroupName, setNewGroupName] = useState('');
+  // --- ADMIN CHECK ---
+  const isAdmin = user.email === 'your-email@gmail.com';
 
-  // (Logic remains the same as your previous version to ensure Supabase sync)
+  // --- STATE ---
+  const [friends, setFriends] = useState<any[]>([]);
+  const [groups, setGroups] = useState<any[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<any | null>(null);
+  const [groupNameInput, setGroupNameInput] = useState('');
+
   const fetchFriendsAndRequests = useCallback(async () => {
     const { data: friendshipData } = await supabase.from('friendships').select('friend_id').eq('user_id', user.id).eq('status', 'accepted');
     if (friendshipData?.length) {
       const { data: profiles } = await supabase.from('profiles').select('*').in('id', friendshipData.map(f => f.friend_id));
       if (profiles) setFriends(profiles);
     }
-    const { data: pendingData } = await supabase.from('friendships').select('user_id, profiles:user_id (id, username, avatar_url)').eq('friend_id', user.id).eq('status', 'pending');
-    if (pendingData) setPendingRequests(pendingData);
   }, [user.id]);
 
   const fetchGroups = useCallback(async () => {
-    const { data: memberOf } = await supabase.from('group_members').select('group_id').eq('user_id', user.id);
-    if (memberOf?.length) {
-      const { data: groupDetails } = await supabase.from('groups').select('*, group_members(user_id, profiles(username, avatar_url))').in('id', memberOf.map(m => m.group_id));
-      if (groupDetails) setGroups(groupDetails);
-    }
-  }, [user.id]);
+    const { data: groupDetails } = await supabase.from('groups').select('*, group_members(user_id, profiles(username, avatar_url))');
+    if (groupDetails) setGroups(groupDetails);
+  }, []);
 
   useEffect(() => {
     fetchFriendsAndRequests();
@@ -50,107 +44,162 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
     return () => { channel.unsubscribe(); };
   }, [user.id, fetchFriendsAndRequests, fetchGroups]);
 
+  // --- ACTIONS ---
+  const handleSaveGroup = async () => {
+    if (!groupNameInput.trim()) return;
+    if (editingGroup) {
+      await supabase.from('groups').update({ name: groupNameInput.toUpperCase() }).eq('id', editingGroup.id);
+    } else {
+      await supabase.from('groups').insert([{ name: groupNameInput.toUpperCase(), created_by: user.id }]);
+    }
+    fetchGroups();
+    closeModal();
+  };
+
+  const deleteGroup = async (id: string) => {
+    if (!window.confirm("DISBAND THIS GUILD?")) return;
+    await supabase.from('groups').delete().eq('id', id);
+    fetchGroups();
+  };
+
+  const openModal = (group: any = null) => {
+    setEditingGroup(group);
+    setGroupNameInput(group ? group.name : '');
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingGroup(null);
+  };
+
   return (
-    <div className="flex h-[calc(100vh-120px)] bg-[#f1f8e9] overflow-hidden border-4 border-[#3e2723] m-2 shadow-[8px_8px_0_0_#2a1b0a]">
+    <div className="min-h-screen bg-[#efebe9] p-4 md:p-8 text-[#3e2723] selection:bg-[#ffaa00]">
       <style>{`
-        .pixel-font { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; }
-        .pixel-border { border: 4px solid #3e2723; }
-        .pixel-bg-wood { background: #fffdf5; background-image: repeating-linear-gradient(90deg, #fdf4db, #fdf4db 1px, transparent 1px, transparent 4px); background-size: 4px 4px; }
-        .guild-btn { width: 48px; height: 48px; border: 3px solid #3e2723; background: #8d6e63; transition: all 0.2s; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 3px 3px 0 0 #2a1b0a; }
-        .guild-btn:hover { transform: scale(1.05); background: #4caf50; }
-        .compact-friend { border-bottom: 2px solid #3e2723; padding: 8px; font-size: 7px; background: white; }
-        .scroll-custom::-webkit-scrollbar { width: 8px; }
-        .scroll-custom::-webkit-scrollbar-track { background: #fdf4db; }
-        .scroll-custom::-webkit-scrollbar-thumb { background: #3e2723; border: 2px solid #fdf4db; }
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        
+        .pixel-font { font-family: 'Press Start 2P', cursive !important; text-transform: uppercase; line-height: 1.5; }
+        .pixel-border { border: 4px solid #3e2723; position: relative; }
+        
+        /* The "Wood Panel" Aesthetic */
+        .pixel-card { 
+          background: #fffdf5; 
+          box-shadow: inset -4px -4px 0px 0px #d7ccc8, 4px 4px 0px 0px #2a1b0a;
+          border: 4px solid #3e2723;
+        }
+
+        .pixel-card:hover { transform: translate(-2px, -2px); box-shadow: inset -4px -4px 0px 0px #d7ccc8, 6px 6px 0px 0px #2a1b0a; }
+        .pixel-card:active { transform: translate(2px, 2px); box-shadow: none; }
+
+        /* Custom Scrollbar for the Guild Strip */
+        .guild-strip::-webkit-scrollbar { height: 8px; }
+        .guild-strip::-webkit-scrollbar-track { background: #d7ccc8; border: 2px solid #3e2723; }
+        .guild-strip::-webkit-scrollbar-thumb { background: #3e2723; }
+
+        .section-label {
+          display: inline-block;
+          background: #3e2723;
+          color: #fffdf5;
+          padding: 4px 12px;
+          font-size: 8px;
+          margin-bottom: 16px;
+          clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+        }
       `}</style>
 
-      {/* COLUMN 1: GUILD SWITCHER (Discord Style) */}
-      <div className="w-20 bg-[#3e2723] flex flex-col items-center py-4 gap-4 border-r-4 border-[#2a1b0a] overflow-y-auto scroll-custom">
-        <button onClick={() => setIsCreatingGroup(true)} className="guild-btn !bg-[#4caf50]">
-          <i className="fas fa-plus"></i>
-        </button>
-        <div className="w-10 h-1 bg-[#5d4037] rounded" />
-        {groups.map(group => (
-          <div key={group.id} onClick={() => navigate(`/guild/${group.id}`)} className="guild-btn relative group" title={group.name}>
-             <span className="text-[10px]">{group.name.substring(0, 2)}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* COLUMN 2: MAIN FEED (Chat/Dashboard View) */}
-      <div className="flex-1 flex flex-col pixel-bg-wood overflow-y-auto scroll-custom p-6">
-        {isCreatingGroup ? (
-          <div className="pixel-border p-6 bg-white shadow-[4px_4px_0_0_#3e2723] mb-6">
-            <h2 className="pixel-font text-[10px] mb-4">Forge New Guild</h2>
-            <input className="pixel-border w-full p-2 mb-4 pixel-font text-[8px]" placeholder="Guild Name..." value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
-            <div className="flex gap-2">
-              <button onClick={() => { /* createGroup logic */ }} className="bg-[#4caf50] text-white p-2 pixel-font text-[8px] pixel-border">Create</button>
-              <button onClick={() => setIsCreatingGroup(false)} className="bg-red-400 text-white p-2 pixel-font text-[8px] pixel-border">Cancel</button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <header className="border-b-4 border-[#3e2723] pb-4 flex justify-between items-center">
-              <h1 className="pixel-font text-[12px]">Guild Command Center</h1>
-              <div className="flex gap-2">
-                <input className="pixel-border p-2 text-[8px] pixel-font" placeholder="Find Player..." value={searchEmail} onChange={(e) => setSearchEmail(e.target.value)} />
-                <button onClick={() => {}} className="bg-[#78909c] text-white px-3 pixel-border text-[8px]"><i className="fas fa-search"></i></button>
+      {/* 1. TOP NAV / GUILDS */}
+      <section className="mb-12">
+        <div className="section-label pixel-font">Available Guilds</div>
+        <div className="flex gap-6 overflow-x-auto pb-6 guild-strip outline-none">
+          {groups.map(group => (
+            <div key={group.id} className="pixel-card p-4 min-w-[160px] flex flex-col items-center group relative">
+              <div onClick={() => navigate(`/guild/${group.id}`)} className="cursor-pointer text-center">
+                <div className="w-16 h-16 bg-[#efebe9] border-4 border-[#3e2723] flex items-center justify-center mb-3 group-hover:bg-[#ffaa00] transition-colors">
+                  <span className="text-2xl">🛡️</span>
+                </div>
+                <p className="pixel-font text-[7px] mb-2">{group.name}</p>
               </div>
-            </header>
-
-            {/* Guild List Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               {groups.map(group => (
-                 <div key={group.id} onClick={() => navigate(`/guild/${group.id}`)} className="pixel-border bg-white p-4 hover:bg-[#f1f8e9] cursor-pointer shadow-[4px_4px_0_0_rgba(0,0,0,0.1)]">
-                   <p className="pixel-font text-[9px] mb-2 text-[#5d4037]">🛡️ {group.name}</p>
-                   <div className="flex -space-x-2">
-                      {group.group_members?.slice(0, 4).map((m: any) => (
-                        <img key={m.user_id} src={m.profiles?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${m.profiles?.username}`} className="w-8 h-8 pixel-border bg-white" alt="m"/>
-                      ))}
-                   </div>
-                 </div>
-               ))}
+              
+              {isAdmin && (
+                <div className="flex gap-4 mt-2 opacity-40 hover:opacity-100 transition-opacity">
+                  <button onClick={() => openModal(group)} className="hover:text-blue-600"><i className="fas fa-cog"></i></button>
+                  <button onClick={() => deleteGroup(group.id)} className="hover:text-red-600"><i className="fas fa-skull"></i></button>
+                </div>
+              )}
             </div>
-
-            {/* Pending Requests Section */}
-            {pendingRequests.length > 0 && (
-              <div className="bg-[#4caf50] pixel-border p-4">
-                <p className="pixel-font text-[8px] text-white mb-3">Incoming Reinforcements ({pendingRequests.length})</p>
-                {pendingRequests.map((req: any) => (
-                  <div key={req.user_id} className="flex justify-between items-center bg-white p-2 mb-2 pixel-border">
-                    <span className="pixel-font text-[7px]">{req.profiles?.username}</span>
-                    <button className="bg-green-500 text-white px-2 py-1 text-[6px] pixel-border">Accept</button>
-                  </div>
-                ))}
-              </div>
-            )}
+          ))}
+          
+          <div onClick={() => openModal()} className="pixel-card p-4 min-w-[160px] bg-[#d7ccc8]/30 border-dashed flex flex-col items-center justify-center cursor-pointer group">
+             <div className="w-10 h-10 border-4 border-dashed border-[#3e2723] flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <i className="fas fa-plus"></i>
+             </div>
+             <p className="pixel-font text-[6px]">Forge</p>
           </div>
-        )}
-      </div>
-
-      {/* COLUMN 3: FRIENDS LIST (Compact Sidebar) */}
-      <div className="w-64 bg-[#efebe9] border-l-4 border-[#3e2723] flex flex-col overflow-hidden">
-        <div className="bg-[#8d6e63] p-3 border-b-4 border-[#3e2723]">
-          <p className="pixel-font text-[8px] text-white">Active Party</p>
         </div>
-        <div className="flex-1 overflow-y-auto scroll-custom">
+      </section>
+
+      {/* 2. PARTY GRID */}
+      <section className="mb-12">
+        <div className="section-label pixel-font">The Party</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-6">
           {friends.map(friend => {
             const isOnline = onlineUsers.includes(friend.id);
             return (
-              <div key={friend.id} onClick={() => setSelectedFriend(friend)} className="compact-friend flex items-center gap-3 hover:bg-[#d7ccc8] cursor-pointer transition-all">
-                <div className="relative">
-                  <img src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} className="w-10 h-10 pixel-border bg-white" alt="avatar" />
-                  <div className={`absolute -bottom-1 -right-1 w-3 h-3 pixel-border ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+              <div key={friend.id} onClick={() => setSelectedFriend(friend)} className="pixel-card p-3 flex flex-col items-center cursor-pointer">
+                <div className="relative mb-3">
+                  <img src={friend.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.username}`} 
+                       className={`w-14 h-14 border-4 border-[#3e2723] bg-white ${isOnline ? '' : 'grayscale contrast-125'}`} alt="avatar" />
+                  <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-[#3e2723] ${isOnline ? 'bg-[#4caf50]' : 'bg-[#9e9e9e]'}`}></div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="pixel-font text-[7px] truncate text-[#3e2723]">{friend.username}</p>
-                  <p className="pixel-font text-[5px] text-[#8d6e63] mt-1">{isOnline ? 'CAMPFIRE' : 'RESTING'}</p>
-                </div>
+                <p className="pixel-font text-[6px] text-center w-full truncate">{friend.username}</p>
+                <p className={`pixel-font text-[4px] mt-2 ${isOnline ? 'text-[#4caf50]' : 'text-[#8d6e63]'}`}>
+                  {isOnline ? 'IN CAMP' : 'ON JOURNEY'}
+                </p>
               </div>
             );
           })}
         </div>
-      </div>
+      </section>
+
+      {/* 3. LOG FOOTER */}
+      <section className="max-w-3xl mx-auto">
+        <div className="section-label pixel-font">Realm Records</div>
+        <div className="pixel-card p-6 space-y-4">
+          {groups.slice(0, 3).map((group, i) => (
+            <div key={group.id} className="flex items-center gap-4 text-[7px] pixel-font border-b-2 border-[#d7ccc8] pb-4 last:border-0 last:pb-0">
+              <span className="text-[#8d6e63]">0{i+1}</span>
+              <span className="flex-1">Guild <span className="text-[#4caf50] underline">{group.name}</span> is recruiting heroes.</span>
+              <button onClick={() => navigate(`/guild/${group.id}`)} className="text-[#3e2723] hover:text-[#ffaa00]"><i className="fas fa-arrow-right"></i></button>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* MODAL overlay */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-[#2a1b0a]/90 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="pixel-card p-8 w-full max-w-md bg-[#fffdf5] animate-in zoom-in-95 duration-200">
+            <h2 className="pixel-font text-[10px] mb-8 border-b-4 border-[#3e2723] pb-4">
+              {editingGroup ? 'Modify Guild' : 'Found New Guild'}
+            </h2>
+            <input 
+              autoFocus
+              className="w-full p-4 mb-8 pixel-font text-[8px] border-4 border-[#3e2723] bg-[#efebe9] focus:bg-white outline-none transition-colors" 
+              placeholder="NAMING..." 
+              value={groupNameInput} 
+              onChange={e => setGroupNameInput(e.target.value)} 
+            />
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button onClick={handleSaveGroup} className="flex-1 bg-[#4caf50] text-white p-4 pixel-font text-[8px] pixel-border shadow-[4px_4px_0_0_#1b5e20] active:shadow-none active:translate-y-1">
+                {editingGroup ? 'UPDATE' : 'CONFIRM'}
+              </button>
+              <button onClick={closeModal} className="flex-1 bg-white p-4 pixel-font text-[8px] pixel-border shadow-[4px_4px_0_0_#d7ccc8] active:shadow-none active:translate-y-1">
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedFriend && (
         <FriendsProfile isOpen={true} onClose={() => setSelectedFriend(null)} user={selectedFriend} />
