@@ -1,222 +1,233 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User } from '../../types';
+import { TimerMode, User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
- 
-import { Achievements } from './Achievements';
 
-interface ProfileModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    user: User;
-    onProfileUpdate: (updatedData: any) => void; 
+interface FocusRoomProps {
+  user: User;
+  updateCoins: (amount: number) => void;
 }
 
-export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }: ProfileModalProps) {
-    const { t } = useTranslation();
-    const [newUsername, setNewUsername] = useState('');
-    const [dailyGoal, setDailyGoal] = useState(100); 
-    const [sessionCount, setSessionCount] = useState(0);
-    const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
-    const [streak, setStreak] = useState(0);
-    
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    
+export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
+  const { t } = useTranslation();
+  const [mode, setMode] = useState<TimerMode>(TimerMode.POMODORO);
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [isActive, setIsActive] = useState(false);
+  const [targetTimestamp, setTargetTimestamp] = useState<string | null>(null);
+  const [notes, setNotes] = useState<string>('');
+  const [isJournalOpen, setIsJournalOpen] = useState(false);
+  const [customSettings, setCustomSettings] = useState({
+    [TimerMode.POMODORO]: 25,
+    [TimerMode.SHORT_BREAK]: 5,
+    [TimerMode.LONG_BREAK]: 15,
+  });
 
-    useEffect(() => {
-        const fetchLiveStats = async () => {
-            if (!user?.id || !isOpen) return;
+  const containerRef = useRef<HTMLDivElement>(null);
 
-            const todayDate = new Date();
-            todayDate.setHours(0, 0, 0, 0);
-            const todayISO = todayDate.toISOString();
+  // --- 1. INITIAL LOAD & RE-ENTRY SYNC ---
+  useEffect(() => {
+    const initFocusRoom = async () => {
+      if (!user) return;
+      
+      const { data: profile } = await supabase.from('profiles')
+        .select('pomodoro_settings, last_notes, timer_ends_at, timer_mode')
+        .eq('id', user.id)
+        .single();
 
-            // 1. FETCH TODAY'S SESSIONS
-            const { data: sessionData } = await supabase
-                .from('study_sessions')
-                .select('time')
-                .eq('user_id', user.id)
-                .gte('created_at', todayISO);
-
-            let totalMinsToday = 0;
-            if (sessionData) {
-                setSessionCount(sessionData.length);
-                totalMinsToday = sessionData.reduce((acc, curr) => acc + (Number(curr.time) || 0), 0);
-                setTotalFocusMinutes(totalMinsToday);
-            }
-            
-
-            // 2. FETCH PROFILE & HANDLE STREAK LOGIC
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select('weekly_streak, daily_goal, last_pomo_at')
-                .eq('id', user.id)
-                .single();
-
-            if (profileData) {
-                setDailyGoal(profileData.daily_goal || 100);
-                
-                // --- STREAK CALCULATION ---
-                const now = new Date();
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-                const oneDayMs = 24 * 60 * 60 * 1000;
-                
-                let lastPomoDate = 0;
-                if (profileData.last_pomo_at) {
-                    const lp = new Date(profileData.last_pomo_at);
-                    lastPomoDate = new Date(lp.getFullYear(), lp.getMonth(), lp.getDate()).getTime();
-                }
-
-                const diff = today - lastPomoDate;
-                let updatedStreak = profileData.weekly_streak || 0;
-
-                if (totalMinsToday > 0) {
-                    if (lastPomoDate < today) {
-                        if (diff === oneDayMs) {
-                            updatedStreak += 1;
-                        } else {
-                            updatedStreak = 1;
-                        }
-                    }
-
-                    // Update database immediately
-                    await supabase
-                        .from('profiles')
-                        .update({ 
-                            weekly_streak: updatedStreak, 
-                            last_pomo_at: new Date().toISOString() 
-                        })
-                        .eq('id', user.id);
-                } 
-                // If they haven't studied today but it's been more than 1 day since last session...
-                else if (diff > oneDayMs) {
-                    updatedStreak = 0; // Streak died.
-                    await supabase.from('profiles').update({ weekly_streak: 0 }).eq('id', user.id);
-                }
-
-                setStreak(updatedStreak);
-            }
-        };
-
-        if (isOpen) {
-            fetchLiveStats();
-            setNewUsername(user.username || '');
+      if (profile?.pomodoro_settings) setCustomSettings(profile.pomodoro_settings);
+      if (profile?.last_notes) setNotes(profile.last_notes);
+      
+      if (profile?.timer_ends_at) {
+        const end = new Date(profile.timer_ends_at).getTime();
+        const now = Date.now();
+        
+        if (end > now) {
+          // Timer is still alive in the DB! Reconstruct the state.
+          setTargetTimestamp(profile.timer_ends_at);
+          setMode(profile.timer_mode as TimerMode || TimerMode.POMODORO);
+          setIsActive(true);
+          setTimeLeft(Math.floor((end - now) / 1000));
+        } else {
+          // Timer expired while away
+          await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', user.id);
+          setIsActive(false);
         }
-    }, [isOpen, user.id]);
-
-    const rawPercent = Math.round((totalFocusMinutes / (dailyGoal || 1)) * 100);
-    const barWidth = Math.min(rawPercent, 100);
-    const passwordsMatch = newPassword && newPassword === confirmPassword;
-
-    const handleSaveProfile = async () => {
-        if (!newUsername.trim()) return;
-    
-        if (newPassword) {
-            if (newPassword.length < 6) return alert(t('password_too_short'));
-            if (newPassword !== confirmPassword) return alert(t('password_mismatch'));
-            const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
-            if (authError) return alert(`AUTH_ERR: ${authError.message}`);
-        }
-
-        const { error } = await supabase
-            .from('profiles')
-            .update({ username: newUsername, daily_goal: dailyGoal })
-            .eq('id', user.id);
-
-        if (!error) {
-            onProfileUpdate({ username: newUsername, daily_goal: dailyGoal }); 
-            setNewPassword('');
-            setConfirmPassword('');
-            alert(t('system_reconfigured'));
-        }
+      }
     };
+    initFocusRoom();
+  }, [user]);
 
-    if (!isOpen) return null;
+  // --- 2. TIMER ENGINE ---
+  useEffect(() => {
+    let interval: any = null;
+    if (isActive && targetTimestamp) {
+      interval = setInterval(() => {
+        const remaining = Math.max(0, Math.floor((new Date(targetTimestamp).getTime() - Date.now()) / 1000));
+        
+        if (remaining <= 0) {
+          clearInterval(interval);
+          handleComplete();
+        } else {
+          setTimeLeft(remaining);
+        }
+      }, 1000);
+    } else if (!isActive) {
+        // Keeps UI in sync with settings when idle
+        setTimeLeft(customSettings[mode] * 60);
+    }
+    return () => clearInterval(interval);
+  }, [isActive, targetTimestamp, mode, customSettings]);
 
-    return (
-        <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-                @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
-                /* Change this line in your ProfileModal <style> tag */
-                .profile-scope *:not(i) { 
-                    font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; 
-                    text-transform: uppercase; 
-                }
+  // --- 3. CORE ACTIONS ---
+  const toggleTimer = async () => {
+    if (isActive) {
+      setIsActive(false);
+      setTargetTimestamp(null);
+      await supabase.from('profiles').update({ 
+        timer_ends_at: null, 
+        last_notes: notes 
+      }).eq('id', user.id);
+    } else {
+      const mins = customSettings[mode];
+      const endAt = new Date(Date.now() + mins * 60000).toISOString();
+      
+      setTargetTimestamp(endAt);
+      setIsActive(true);
+      
+      await supabase.from('profiles').update({ 
+        timer_ends_at: endAt, 
+        timer_mode: mode 
+      }).eq('id', user.id);
+    }
+  };
 
-                /* Ensure icons can still use their own font */
-                .profile-scope i {
-                    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif !important;
-                    font-weight: 900;
-                }
-                .terminal-modal { background: #1a1a1a; border: 4px solid #333; color: #00ff00; }
-                .stat-box { border: 2px solid #333; background: #111; padding: 15px; }
-                .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 20px; padding: 2px; }
-                .xp-bar-fill { background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.5s; }
-                .pixel-input { background: #000; border: 2px solid #333; color: #ffaa00; padding: 10px; font-size: 8px; width: 100%; outline: none; }
-                .pixel-btn-save { background: #222; border: 2px solid #00ff00; color: #00ff00; padding: 15px; cursor: pointer; width: 100%; }
-                .pixel-btn-save:hover { background: #00ff00; color: #000; }
-            `}</style>
+  const handleComplete = async () => {
+    setIsActive(false);
+    setTargetTimestamp(null);
+    await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', user.id);
+    
+    if (mode === TimerMode.POMODORO) updateCoins(25);
+    
+    // Auto-switch modes
+    setMode(mode === TimerMode.POMODORO ? TimerMode.SHORT_BREAK : TimerMode.POMODORO);
+  };
 
-            <div className="terminal-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto p-10 relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-red-500">[X]</button>
-                <h1 className="text-[12px] mb-10 text-[#ffaa00] border-b-2 border-[#333] pb-4">
-                    {t('user_profile')} // ID_{user.id.substring(0,8)}
-                </h1>
-                {/*Progress report */}
-                <div className="stat-box mb-8">
-                    <h2 className="text-[8px] text-[#00ff00] mb-6 tracking-widest">{">"} {t('progress_report')}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-center">
-                        <div><p className="text-[6px] text-slate-500 mb-2">{t('mins')}</p><p className="text-[10px] text-white">{totalFocusMinutes}</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">{t('sess')}</p><p className="text-[10px] text-white">{sessionCount}</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">{t('streak')}</p><p className="text-[10px] text-[#ffaa00]">{streak}D</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">{t('quota')}</p><p className="text-[10px] text-white">{rawPercent}%</p></div>
-                    </div>
+  const handleManualTimeChange = async (val: string) => {
+    if (isActive) return;
+    const mins = val === '' ? 0 : Math.min(180, Math.max(1, parseInt(val) || 1));
+    const newSettings = { ...customSettings, [mode]: mins };
+    
+    setCustomSettings(newSettings);
 
-                    <div className="xp-bar-container">
-                        <div className="h-full xp-bar-fill" style={{ width: `${barWidth}%` }} />
-                    </div>
-                </div>
-                
-                {/*Achievements*/}
-                <div className="stat-box mb-6 border-cyan-900/50">
-                    <h2 className="text-[8px] text-cyan-400 mb-6 tracking-widest">{">"} ACHIEVEMENT_LOG</h2>
-                    <Achievements 
-                        stats={{ streak, sessionCount, totalFocusMinutes }} 
-                        userId={user.id} 
-                    />
-                </div>
-                
-                {/*Security */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div className="stat-box">
-                        <h2 className="text-[8px] mb-6 text-slate-400"># {t('identity')}</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">{t('username')}</label>
-                                <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="pixel-input" />
-                            </div>
-                            <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">{t('daily_goal')}</label>
-                                <input type="number" value={dailyGoal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="pixel-input" />
-                            </div>
-                        </div>
-                    </div>
+    // Save preference to DB as they change it
+    await supabase.from('profiles')
+      .update({ pomodoro_settings: newSettings })
+      .eq('id', user.id);
+  };
 
-                    <div className="stat-box border-red-900/50">
-                        <h2 className="text-[8px] text-red-500 mb-6">! {t('security')}</h2>
-                        <div className="space-y-4">
-                            <input type="password" placeholder={t('new_pass')} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pixel-input" />
-                            <input type="password" placeholder={t('confirm_pass')} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`pixel-input ${confirmPassword && !passwordsMatch ? 'border-red-500' : ''}`} />
-                        </div>
-                    </div>
-                </div>
+  const saveNotesToDB = async () => {
+    if (!user) return;
+    await supabase.from('profiles').update({ last_notes: notes }).eq('id', user.id);
+  };
 
-                <button onClick={handleSaveProfile} className="pixel-btn-save">
-                    {">"} {t('execute_update')}
-                </button>
-            </div>
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  const downloadNotes = () => {
+    const element = document.createElement("a");
+    const file = new Blob([`# SESSION JOURNAL - ${new Date().toLocaleDateString()}\n\n${notes}`], {type: 'text/markdown'});
+    element.href = URL.createObjectURL(file);
+    element.download = `scribe_notes_${new Date().toISOString().split('T')[0]}.md`;
+    document.body.appendChild(element);
+    element.click();
+  };
+
+  return (
+    <div ref={containerRef} className="game-ui-scope min-h-screen bg-[#0f1410] text-[#e0e7d8] flex items-center justify-center p-6 relative overflow-hidden">
+      <style>{`
+        .game-ui-scope *:not(i) { font-family: 'Press Start 2P', monospace !important; text-transform: uppercase; }
+        .altar-box { background: #1a231b; padding: 40px; border: 8px double #4caf50; position: relative; z-index: 10; }
+        .timer-input { background: transparent; border: none; text-align: center; color: #4caf50; outline: none; width: 100%; cursor: pointer; transition: 0.3s; }
+        .timer-input:focus { color: #ffaa00; }
+        .journal-sidebar { position: absolute; right: 0; top: 0; bottom: 0; width: 350px; background: #fffdf5; color: #3e2723; transform: translateX(${isJournalOpen ? '0' : '100%'}); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 100; border-left: 8px solid #3e2723; }
+        .btn-pixel { background: #4caf50; padding: 12px; border: 4px solid #1b5e20; color: white; cursor: pointer; font-size: 8px; box-shadow: 4px 4px 0 0 #000; }
+        .btn-pixel:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 0 #000; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+      `}</style>
+
+      {/* BACKGROUND DECOR */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none" 
+           style={{backgroundImage: 'radial-gradient(#4caf50 1px, transparent 1px)', backgroundSize: '30px 30px'}}></div>
+
+      {/* TOP HUD */}
+      <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-20">
+        <div className="flex gap-4">
+            <button onClick={() => setMode(TimerMode.POMODORO)} disabled={isActive} className={`btn-pixel ${mode === TimerMode.POMODORO ? 'bg-orange-600' : 'opacity-50'}`}>FOCUS</button>
+            <button onClick={() => setMode(TimerMode.SHORT_BREAK)} disabled={isActive} className={`btn-pixel ${mode === TimerMode.SHORT_BREAK ? 'bg-blue-600' : 'opacity-50'}`}>BREAK</button>
         </div>
-    );
-}
+        <div className="flex gap-4">
+            <button onClick={toggleFullscreen} className="btn-pixel bg-slate-700"><i className="fas fa-expand"></i></button>
+            <button onClick={() => setIsJournalOpen(true)} className="btn-pixel bg-amber-700">JOURNAL</button>
+        </div>
+      </div>
+
+      {/* MAIN ALTAR */}
+      <div className="altar-box flex flex-col items-center max-w-2xl w-full">
+        <p className="text-[#4caf50] text-[10px] mb-8 animate-pulse tracking-widest text-center">
+          {isActive ? '--- QUEST IN PROGRESS ---' : '--- ADJUST YOUR FOCUS ---'}
+        </p>
+
+        <div className="w-full mb-10 flex justify-center items-center">
+          {isActive ? (
+            <h1 className="text-6xl md:text-8xl text-center text-[#ffaa00] tabular-nums tracking-tight">
+              {Math.floor(timeLeft / 3600) > 0 ? `${Math.floor(timeLeft / 3600)}:` : ''}
+              {Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0')}:
+              {(timeLeft % 60).toString().padStart(2, '0')}
+            </h1>
+          ) : (
+          <div className="flex items-end justify-center gap-2">
+              <input 
+                  type="number" 
+                  value={customSettings[mode] || ''}
+                  onChange={(e) => handleManualTimeChange(e.target.value)}
+                  className="timer-input text-6xl md:text-8xl"
+                  placeholder="00"
+              />
+                <span className="text-xl text-[#4caf50] mb-4">MINS</span>
+            </div>
+          )}
+        </div>
+
+        <button onClick={toggleTimer} className="w-full btn-pixel !text-xl py-6 bg-[#4caf50] hover:bg-[#66bb6a]">
+            {isActive ? 'ABORT QUEST' : 'BEGIN SESSION'}
+        </button>
+      </div>
+
+      {/* SLIDE-OUT JOURNAL */}
+      <div className="journal-sidebar flex flex-col p-6 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
+          <div className="flex justify-between items-center border-b-4 border-[#3e2723] pb-4 mb-4">
+            <h2 className="text-[12px] font-bold text-[#3e2723]">SCRIBE'S LOG</h2>
+            <button onClick={() => { saveNotesToDB(); setIsJournalOpen(false); }} className="text-red-700 hover:scale-125 transition-transform">X</button>
+          </div>
+          <textarea 
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onBlur={saveNotesToDB}
+            className="flex-1 bg-transparent resize-none outline-none border-2 border-dashed border-[#d7ccc8] p-4 text-[10px] leading-relaxed text-[#3e2723]"
+            placeholder="Scribe your findings here..."
+          />
+          <button onClick={downloadNotes} className="btn-pixel bg-amber-800 mt-4 w-full">EXPORT .MD</button>
+      </div>
+      
+      {/* HUD INFO */}
+      <div className="absolute bottom-8 left-8 text-[6px] text-white/20 tracking-[4px]">
+        STUDILIB_VOID_PROTOCOL // {user.username}
+      </div>
+    </div>
+  );
+};
