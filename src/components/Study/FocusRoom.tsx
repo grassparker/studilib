@@ -24,7 +24,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // --- 1. INITIAL LOAD & RE-ENTRY SYNC ---
+  // --- 1. INITIAL LOAD & PROFILE SYNC ---
   useEffect(() => {
     const initFocusRoom = async () => {
       if (!user) return;
@@ -42,13 +42,12 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
         const now = Date.now();
         
         if (end > now) {
-          // Timer is still alive in the DB! Reconstruct the state.
           setTargetTimestamp(profile.timer_ends_at);
           setMode(profile.timer_mode as TimerMode || TimerMode.POMODORO);
           setIsActive(true);
           setTimeLeft(Math.floor((end - now) / 1000));
         } else {
-          // Timer expired while user was away
+          // Clean up expired session in DB so Profile Modal updates
           await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', user.id);
           setIsActive(false);
         }
@@ -72,18 +71,29 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
         }
       }, 1000);
     } else if (!isActive) {
-        // Keeps UI in sync with settings when idle
         setTimeLeft(customSettings[mode] * 60);
     }
     return () => clearInterval(interval);
   }, [isActive, targetTimestamp, mode, customSettings]);
 
-  // --- 3. CORE ACTIONS ---
+  // --- 3. LOGGING SESSIONS TO study_sessions ---
   const toggleTimer = async () => {
     if (isActive) {
+      // LOG ABORTED SESSION TO study_sessions
+      const sessionDuration = customSettings[mode] - Math.floor(timeLeft / 60);
+      await supabase.from('study_sessions').insert({
+        user_id: user.id,
+        time: sessionDuration, // matches 'time' int4 column
+        status: 'aborted',     // matches 'status' text column
+      });
+
       setIsActive(false);
       setTargetTimestamp(null);
-      await supabase.from('profiles').update({ timer_ends_at: null, last_notes: notes }).eq('id', user.id);
+      await supabase.from('profiles').update({ 
+        timer_ends_at: null, 
+        last_notes: notes 
+      }).eq('id', user.id);
+
     } else {
       const mins = customSettings[mode];
       const endAt = new Date(Date.now() + mins * 60000).toISOString();
@@ -91,7 +101,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
       setTargetTimestamp(endAt);
       setIsActive(true);
       
-      // Sync to DB so it persists across sessions/tabs
+      // Update profile immediately so the Profile Modal shows active status
       await supabase.from('profiles').update({ 
         timer_ends_at: endAt, 
         timer_mode: mode 
@@ -100,20 +110,34 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
   };
 
   const handleComplete = async () => {
+    // LOG COMPLETED SESSION TO study_sessions
+    await supabase.from('study_sessions').insert({
+      user_id: user.id,
+      time: customSettings[mode],
+      status: 'completed',
+    });
+
     setIsActive(false);
     setTargetTimestamp(null);
+    
+    // Clear Profile timer and update coins
     await supabase.from('profiles').update({ timer_ends_at: null }).eq('id', user.id);
     
     if (mode === TimerMode.POMODORO) updateCoins(25);
-    
-    // Auto-switch modes
     setMode(mode === TimerMode.POMODORO ? TimerMode.SHORT_BREAK : TimerMode.POMODORO);
   };
 
-  const handleManualTimeChange = (val: string) => {
+  const handleManualTimeChange = async (val: string) => {
     if (isActive) return;
     const mins = val === '' ? 0 : Math.min(180, Math.max(1, parseInt(val) || 1));
-    setCustomSettings(prev => ({ ...prev, [mode]: mins }));
+    const newSettings = { ...customSettings, [mode]: mins };
+    
+    setCustomSettings(newSettings);
+
+    // Save defaults to profiles so your modal stays synced with user preferences
+    await supabase.from('profiles')
+      .update({ pomodoro_settings: newSettings })
+      .eq('id', user.id);
   };
 
   const saveNotesToDB = async () => {
@@ -151,11 +175,11 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
       `}</style>
 
-      {/* BACKGROUND DECOR */}
+      {/* HUD DECOR */}
       <div className="absolute inset-0 opacity-10 pointer-events-none" 
            style={{backgroundImage: 'radial-gradient(#4caf50 1px, transparent 1px)', backgroundSize: '30px 30px'}}></div>
 
-      {/* TOP HUD */}
+      {/* TOP CONTROLS */}
       <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-20">
         <div className="flex gap-4">
             <button onClick={() => setMode(TimerMode.POMODORO)} disabled={isActive} className={`btn-pixel ${mode === TimerMode.POMODORO ? 'bg-orange-600' : 'opacity-50'}`}>FOCUS</button>
@@ -199,11 +223,11 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
         </button>
       </div>
 
-      {/* SLIDE-OUT JOURNAL */}
+      {/* SIDE JOURNAL */}
       <div className="journal-sidebar flex flex-col p-6 shadow-[-10px_0_30px_rgba(0,0,0,0.5)]">
           <div className="flex justify-between items-center border-b-4 border-[#3e2723] pb-4 mb-4">
-            <h2 className="text-[12px] font-bold">SCRIBE'S LOG</h2>
-            <button onClick={() => { saveNotesToDB(); setIsJournalOpen(false); }} className="text-red-700 hover:scale-125 transition-transform">X</button>
+            <h2 className="text-[12px] font-bold text-[#3e2723]">SCRIBE'S LOG</h2>
+            <button onClick={() => { saveNotesToDB(); setIsJournalOpen(false); }} className="text-red-700">X</button>
           </div>
           <textarea 
             value={notes}
@@ -213,14 +237,6 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
             placeholder="Scribe your findings here..."
           />
           <button onClick={downloadNotes} className="btn-pixel bg-amber-800 mt-4 w-full">EXPORT .MD</button>
-      </div>
-      
-      {/* HUD INFO */}
-      <div className="absolute bottom-8 left-8 text-[6px] text-white/20 tracking-[4px]">
-        STUDILIB_VOID_PROTOCOL // {user.username}
-      </div>
-      <div className="absolute bottom-8 right-8 text-[6px] text-white/20 tracking-[2px]">
-        DB_SYNC_STATUS: {isActive ? 'ACTIVE_PUSH' : 'IDLE'}
       </div>
     </div>
   );
