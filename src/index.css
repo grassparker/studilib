@@ -1,2 +1,35 @@
 @import "tailwindcss";
 
+:root {
+  /* Derived from your gradient */
+  --study-bg-top: #000d3d;
+  --study-bg-mid: #1a478a;
+  --study-bg-bottom: #e6ccb2;
+  
+  /* UI Colors */
+  --study-primary: #e6ccb2;        /* The almond highlight */
+  --study-primary-dark: #7a98b9;   /* The muted transition blue */
+  --study-accent: #ffffff;         /* Clean white for high contrast */
+  --study-bg: #000d3d;             /* Default background */
+  --study-card-bg: rgba(255, 255, 255, 0.03); 
+  --study-text: #cbd5e1;           
+  --study-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Global Background Setup */
+body {
+  background: linear-gradient(to bottom, #000d3d 0%, #1a478a 40%, #7a98b9 80%, #e6ccb2 100%);
+  background-attachment: fixed; /* Keeps gradient still while scrolling */
+  min-height: 100vh;
+  color: var(--study-text);
+}
+
+/* Chinese Font Scaling (Your existing fix) */
+:lang(zh) {
+  font-family: 'Plus Jakarta Sans', "Microsoft YaHei", "PingFang SC", sans-serif !important;
+}
+
+.pixel-text:lang(zh), .pixel-font:lang(zh) {
+  font-size: 0.85em; 
+  line-height: 1.4;
+}

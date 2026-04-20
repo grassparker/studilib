@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../Auth/supabaseClient'; // Double-check this path!
+import { supabase } from '../../Auth/supabaseClient';
 
 interface ChatProps {
   groupId: string;
@@ -12,11 +12,20 @@ export const Chat: React.FC<ChatProps> = ({ groupId, userId, username }) => {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // --- 1. THE REFRESH LOGIC (Fetch from DB) ---
+  // --- AUTO SCROLL ---
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // --- INITIAL FETCH ---
   const fetchMessages = async () => {
     const { data, error } = await supabase
       .from('group_messages')
-      .select('*, profiles(username)') // This joins with profiles to get the name
+      .select('*, profiles(username)')
       .eq('group_id', groupId)
       .order('created_at', { ascending: true })
       .limit(50);
@@ -25,13 +34,18 @@ export const Chat: React.FC<ChatProps> = ({ groupId, userId, username }) => {
     else if (data) setMessages(data);
   };
 
-  // --- 2. THE REALTIME LOGIC ---
+  // --- REALTIME SUBSCRIPTION ---
   useEffect(() => {
     let isMounted = true;
-    // Use a unique channel name to avoid collisions
-    const channel = supabase.channel(`guild_chat_${groupId}_${Date.now()}`);
+    
+    // Create a stable channel name based on the groupId
+    const channel = supabase.channel(`room_${groupId}`, {
+      config: {
+        broadcast: { self: false }, // Don't broadcast back to ourselves
+      },
+    });
 
-    const startSubscription = async () => {
+    const startSubscription = () => {
       channel
         .on(
           'postgres_changes',
@@ -44,28 +58,43 @@ export const Chat: React.FC<ChatProps> = ({ groupId, userId, username }) => {
           async (payload) => {
             if (!isMounted) return;
 
-            // Optimization: Use passed username if we are the sender
-            let senderName = payload.new.user_id === userId ? username : null;
+            // Check if we already have this message (prevents double-rendering from optimistic update)
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === payload.new.id)) return prev;
 
-            if (!senderName) {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('username')
-                .eq('id', payload.new.user_id)
-                .single();
-              senderName = profile?.username || 'GUEST';
-            }
+              // If it's not ours, we need to fetch the sender's username
+              // Note: In a production app, you might want to join this data via a DB Function
+              const getSenderAndAdd = async () => {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('username')
+                  .eq('id', payload.new.user_id)
+                  .single();
 
-            const incomingMsg = {
-              ...payload.new,
-              profiles: { username: senderName },
-            };
+                const incomingMsg = {
+                  ...payload.new,
+                  profiles: { username: profile?.username || 'GUEST' },
+                };
+                
+                if (isMounted) {
+                  setMessages((current) => [...current, incomingMsg]);
+                }
+              };
 
-            setMessages((prev) => [...prev, incomingMsg]);
+              // Only fetch if the message isn't from the current user
+              if (payload.new.user_id !== userId) {
+                getSenderAndAdd();
+                return prev;
+              }
+
+              return prev;
+            });
           }
         )
         .subscribe((status) => {
-          if (isMounted) console.log("LOBBY_SYNC:", status);
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully connected to Realtime');
+          }
         });
     };
 
@@ -74,75 +103,126 @@ export const Chat: React.FC<ChatProps> = ({ groupId, userId, username }) => {
 
     return () => {
       isMounted = false;
-      // The "Ghost Fix": We use a small delay or check status to prevent 
-      // closing a connection that is still in the "JOINING" phase.
-      const cleanup = async () => {
-        if (channel && channel.state !== 'closed') {
-          try {
-            await supabase.removeChannel(channel);
-          } catch (e) {
-            // Silently catch the "WebSocket already closed" error
-            console.debug("Cleanup handled gracefully");
-          }
-        }
-      };
-      cleanup();
+      supabase.removeChannel(channel);
     };
-  }, [groupId, userId, username]);
+  }, [groupId, userId]);
 
+  // --- SEND MESSAGE (WITH OPTIMISTIC UI) ---
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    const messageContent = newMessage.trim();
+    if (!messageContent) return;
 
-    const { error } = await supabase.from('group_messages').insert([
-      {
-        group_id: groupId,
-        user_id: userId,
-        content: newMessage.trim(),
-      },
-    ]);
+    // 1. Create a temporary "Optimistic" message
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      content: messageContent,
+      user_id: userId,
+      created_at: new Date().toISOString(),
+      profiles: { username: username }, // Use the prop-passed username
+    };
 
-    if (error) alert("FAILED TO SEND");
+    // 2. Update UI immediately
+    setMessages((prev) => [...prev, optimisticMsg]);
     setNewMessage('');
+
+    // 3. Send to Supabase
+    const { data, error } = await supabase
+      .from('group_messages')
+      .insert([
+        {
+          group_id: groupId,
+          user_id: userId,
+          content: messageContent,
+        },
+      ])
+      .select('*, profiles(username)')
+      .single();
+
+    if (error) {
+      console.error("SEND_ERROR", error);
+      // Remove the optimistic message if it failed
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+    } else if (data) {
+      // Replace the temp message with the real one from the DB
+      setMessages((prev) => 
+        prev.map((m) => (m.id === tempId ? data : m))
+      );
+    }
   };
 
   return (
-    <div className="flex flex-col h-full bg-white font-mono">
-      {/* MESSAGE LIST */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[400px]">
-        {messages.length > 0 ? (
-          messages.map((msg) => (
-        <div 
-          key={msg.id} 
-          className="text-[10px] border-l-4 border-blue-200 pl-2 py-1 flex flex-col"
-        >
-          <div className="font-bold text-blue-600 truncate">
-            [{msg.profiles?.username || 'GUEST'}]:
-          </div>
-          {/* We use a div here instead of a span to ensure block-level wrapping */}
-          <div className="text-black break-all overflow-hidden whitespace-pre-wrap leading-relaxed">
-            {msg.content}
-          </div>
-        </div>
-      ))
-    ) : (
-      <p className="text-[8px] text-slate-300 italic">NO MESSAGES IN LOGS...</p>
-  )}
-    <div ref={messagesEndRef} />
-  </div>
+    <div className="flex flex-col h-full bg-[#000d3d]/60 backdrop-blur-md">
+      <style>{`
+        .chat-scroll::-webkit-scrollbar { width: 4px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: rgba(230, 204, 178, 0.2); border-radius: 10px; }
+        
+        .bubble-mine {
+          background: linear-gradient(135deg, #1e40af 0%, #000d3d 100%);
+          border: 1px solid rgba(96, 165, 250, 0.2);
+          border-bottom-right-radius: 2px;
+        }
+        
+        .bubble-theirs {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-bottom-left-radius: 2px;
+        }
+      `}</style>
 
-      {/* INPUT FIELD */}
-      <form
-        onSubmit={handleSendMessage}
-        className="p-4 border-t-4 border-black flex gap-2 bg-slate-50"
-      >
+      {/* HEADER */}
+      <div className="px-4 py-2 border-b border-white/10 flex justify-between items-center bg-black/20">
+        <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-[10px] text-emerald-500/80 font-mono tracking-widest uppercase">Sync_Active</span>
+        </div>
+        <span className="text-[10px] text-white/20 font-mono uppercase">Node_{groupId.substring(0,4)}</span>
+      </div>
+
+      {/* MESSAGE LIST */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll">
+        {messages.length > 0 ? (
+          messages.map((msg) => {
+            const isMe = msg.user_id === userId;
+            return (
+              <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                <div className={`flex items-center gap-2 mb-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                  <span className="text-[9px] text-[#e6ccb2]/60 font-mono uppercase">
+                    {msg.profiles?.username || 'GUEST'}
+                  </span>
+                  <span className="text-[8px] text-white/10 font-mono">
+                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                
+                <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs shadow-lg ${isMe ? 'bubble-mine text-white' : 'bubble-theirs text-blue-100'}`}>
+                  <p className="leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="h-full flex flex-col items-center justify-center opacity-20 space-y-2">
+             <p className="text-[10px] font-mono tracking-widest uppercase">Awaiting Transmissions...</p>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* INPUT */}
+      <form onSubmit={handleSendMessage} className="p-3 bg-black/40 border-t border-white/10 flex gap-2">
         <input
-          className="flex-1 pixel-input-field !p-2 !text-[10px]"
-          placeholder="ENTER MESSAGE..."
+          className="flex-1 bg-[#000d3d]/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-blue-400/50 transition-all"
+          placeholder="TYPE MESSAGE..."
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
         />
-        <button type="submit" className="pixel-btn-action !p-2">
+        <button 
+          type="submit" 
+          className="bg-[#e6ccb2] text-[#000d3d] px-4 py-2 rounded-lg hover:brightness-110 active:scale-95 transition-all text-xs font-bold"
+        >
           SEND
         </button>
       </form>

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
- 
 import { Achievements } from './Achievements';
 
 interface ProfileModalProps {
@@ -22,7 +21,6 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
     
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    
 
     useEffect(() => {
         const fetchLiveStats = async () => {
@@ -32,7 +30,6 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
             todayDate.setHours(0, 0, 0, 0);
             const todayISO = todayDate.toISOString();
 
-            // 1. FETCH TODAY'S SESSIONS
             const { data: sessionData } = await supabase
                 .from('study_sessions')
                 .select('time')
@@ -46,8 +43,6 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                 setTotalFocusMinutes(totalMinsToday);
             }
             
-
-            // 2. FETCH PROFILE & HANDLE STREAK LOGIC
             const { data: profileData } = await supabase
                 .from('profiles')
                 .select('weekly_streak, daily_goal, last_pomo_at')
@@ -56,45 +51,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
 
             if (profileData) {
                 setDailyGoal(profileData.daily_goal || 100);
-                
-                // --- STREAK CALCULATION ---
-                const now = new Date();
-                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-                const oneDayMs = 24 * 60 * 60 * 1000;
-                
-                let lastPomoDate = 0;
-                if (profileData.last_pomo_at) {
-                    const lp = new Date(profileData.last_pomo_at);
-                    lastPomoDate = new Date(lp.getFullYear(), lp.getMonth(), lp.getDate()).getTime();
-                }
-
-                const diff = today - lastPomoDate;
-                let updatedStreak = profileData.weekly_streak || 0;
-
-                if (totalMinsToday > 0) {
-                    if (lastPomoDate < today) {
-                        if (diff === oneDayMs) {
-                            updatedStreak += 1;
-                        } else {
-                            updatedStreak = 1;
-                        }
-                    }
-
-                    // Update database immediately
-                    await supabase
-                        .from('profiles')
-                        .update({ 
-                            weekly_streak: updatedStreak, 
-                            last_pomo_at: new Date().toISOString() 
-                        })
-                        .eq('id', user.id);
-                } 
-                // If they haven't studied today but it's been more than 1 day since last session...
-                else if (diff > oneDayMs) {
-                    updatedStreak = 0; // Streak died.
-                    await supabase.from('profiles').update({ weekly_streak: 0 }).eq('id', user.id);
-                }
-
+                const updatedStreak = profileData.weekly_streak || 0;
                 setStreak(updatedStreak);
             }
         };
@@ -107,17 +64,11 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
 
     const rawPercent = Math.round((totalFocusMinutes / (dailyGoal || 1)) * 100);
     const barWidth = Math.min(rawPercent, 100);
-    const passwordsMatch = newPassword && newPassword === confirmPassword;
+    const passwordsMatch = newPassword === confirmPassword;
 
     const handleSaveProfile = async () => {
         if (!newUsername.trim()) return;
-    
-        if (newPassword) {
-            if (newPassword.length < 6) return alert(t('password_too_short'));
-            if (newPassword !== confirmPassword) return alert(t('password_mismatch'));
-            const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
-            if (authError) return alert(`AUTH_ERR: ${authError.message}`);
-        }
+        if (newPassword && (newPassword.length < 6 || !passwordsMatch)) return;
 
         const { error } = await supabase
             .from('profiles')
@@ -135,86 +86,173 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
     if (!isOpen) return null;
 
     return (
-        <div className="profile-scope fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-                @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
-                /* Change this line in your ProfileModal <style> tag */
-                .profile-scope *:not(i) { 
-                    font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; 
-                    text-transform: uppercase; 
+                
+                .horizon-modal-overlay {
+                    position: absolute;
+                    inset: 0;
+                    background: radial-gradient(circle at center, rgba(26, 71, 138, 0.4) 0%, rgba(0, 13, 61, 0.95) 100%);
+                    backdrop-filter: blur(12px);
                 }
 
-                /* Ensure icons can still use their own font */
-                .profile-scope i {
-                    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif !important;
-                    font-weight: 900;
+                .glass-panel {
+                    background: rgba(255, 255, 255, 0.03);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    backdrop-filter: blur(20px);
+                    border-radius: 32px;
+                    box-shadow: 0 40px 100px rgba(0,0,0,0.6);
                 }
-                .terminal-modal { background: #1a1a1a; border: 4px solid #333; color: #00ff00; }
-                .stat-box { border: 2px solid #333; background: #111; padding: 15px; }
-                .xp-bar-container { border: 2px solid #00ff00; background: #000; height: 20px; padding: 2px; }
-                .xp-bar-fill { background: #00ff00; box-shadow: 0 0 10px #00ff00; transition: width 0.5s; }
-                .pixel-input { background: #000; border: 2px solid #333; color: #ffaa00; padding: 10px; font-size: 8px; width: 100%; outline: none; }
-                .pixel-btn-save { background: #222; border: 2px solid #00ff00; color: #00ff00; padding: 15px; cursor: pointer; width: 100%; }
-                .pixel-btn-save:hover { background: #00ff00; color: #000; }
+
+                .stat-card {
+                    background: rgba(255, 255, 255, 0.02);
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    border-radius: 20px;
+                    padding: 1.5rem;
+                }
+
+                .horizon-bar-bg {
+                    height: 8px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 4px;
+                    overflow: hidden;
+                    margin-top: 12px;
+                }
+
+                .horizon-bar-fill {
+                    height: 100%;
+                    background: linear-gradient(90deg, #7a98b9, #e6ccb2);
+                    box-shadow: 0 0 15px rgba(230, 204, 178, 0.4);
+                    transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+                }
+
+                .glass-input {
+                    background: rgba(0, 0, 0, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    color: white;
+                    border-radius: 12px;
+                    padding: 12px 16px;
+                    font-size: 8px;
+                    width: 100%;
+                    transition: all 0.3s;
+                }
+
+                .glass-input:focus {
+                    border-color: #e6ccb2;
+                    background: rgba(255, 255, 255, 0.05);
+                    outline: none;
+                }
+
+                .btn-save-horizon {
+                    background: #e6ccb2;
+                    color: #000d3d;
+                    padding: 20px;
+                    border-radius: 16px;
+                    font-family: 'Press Start 2P', monospace;
+                    font-size: 9px;
+                    font-weight: bold;
+                    width: 100%;
+                    transition: all 0.3s;
+                }
+
+                .btn-save-horizon:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 20px rgba(230, 204, 178, 0.2);
+                }
+
+                .pixel-font { font-family: 'Press Start 2P', monospace; }
             `}</style>
 
-            <div className="terminal-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto p-10 relative">
-                <button onClick={onClose} className="absolute top-4 right-4 text-red-500">[X]</button>
-                <h1 className="text-[12px] mb-10 text-[#ffaa00] border-b-2 border-[#333] pb-4">
-                    {t('user_profile')} // ID_{user.id.substring(0,8)}
-                </h1>
-                {/*Progress report */}
-                <div className="stat-box mb-8">
-                    <h2 className="text-[8px] text-[#00ff00] mb-6 tracking-widest">{">"} {t('progress_report')}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 text-center">
-                        <div><p className="text-[6px] text-slate-500 mb-2">{t('mins')}</p><p className="text-[10px] text-white">{totalFocusMinutes}</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">{t('sess')}</p><p className="text-[10px] text-white">{sessionCount}</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">{t('streak')}</p><p className="text-[10px] text-[#ffaa00]">{streak}D</p></div>
-                        <div><p className="text-[6px] text-slate-500 mb-2">{t('quota')}</p><p className="text-[10px] text-white">{rawPercent}%</p></div>
+            <div className="horizon-modal-overlay" onClick={onClose} />
+
+            <div className="glass-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 md:p-10 relative z-10 text-white">
+                {/* Header */}
+                <div className="flex justify-between items-start mb-8">
+                    <div>
+                        <p className="pixel-font text-[7px] text-blue-300/60 tracking-[0.4em] mb-2">{t('operator_profile')}</p>
+                        <h1 className="text-xl font-bold tracking-tight">
+                            {user.username || 'NODE'}<span className="text-blue-400/40 font-mono">#{user.id.substring(0,4)}</span>
+                        </h1>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/5 transition-colors">
+                        <i className="fas fa-times opacity-40"></i>
+                    </button>
+                </div>
+
+                {/* Performance HUD */}
+                <div className="stat-card mb-8">
+                    <div className="flex items-center gap-3 mb-6">
+                        <i className="fas fa-chart-line text-blue-300"></i>
+                        <h2 className="pixel-font text-[8px] tracking-widest text-blue-200/80">{t('performance_sync')}</h2>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-white/5 p-4 rounded-xl">
+                            <p className="text-[6px] pixel-font text-slate-500 mb-2">{t('focus')}</p>
+                            <p className="text-lg font-bold">{totalFocusMinutes}<span className="text-[10px] ml-1 opacity-40">M</span></p>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-xl">
+                            <p className="text-[6px] pixel-font text-slate-500 mb-2">{t('sessions')}</p>
+                            <p className="text-lg font-bold">{sessionCount}</p>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-xl border border-blue-400/20 shadow-[0_0_15px_rgba(96,165,250,0.1)]">
+                            <p className="text-[6px] pixel-font text-blue-400 mb-2">{t('streak')}</p>
+                            <p className="text-lg font-bold">{streak}<span className="text-[10px] ml-1 opacity-40">D</span></p>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-xl">
+                            <p className="text-[6px] pixel-font text-slate-500 mb-2">{t('quota')}</p>
+                            <p className="text-lg font-bold">{rawPercent}%</p>
+                        </div>
                     </div>
 
-                    <div className="xp-bar-container">
-                        <div className="h-full xp-bar-fill" style={{ width: `${barWidth}%` }} />
+                    <div className="flex justify-between items-end mb-2">
+                        <span className="pixel-font text-[6px] text-slate-500">{t('daily_progress_flow')}</span>
+                        <span className="pixel-font text-[7px] text-blue-200">{rawPercent}%</span>
+                    </div>
+                    <div className="horizon-bar-bg">
+                        <div className="horizon-bar-fill" style={{ width: `${barWidth}%` }} />
                     </div>
                 </div>
-                
-                {/*Achievements*/}
-                <div className="stat-box mb-6 border-cyan-900/50">
-                    <h2 className="text-[8px] text-cyan-400 mb-6 tracking-widest">{">"} ACHIEVEMENT_LOG</h2>
-                    <Achievements 
-                        stats={{ streak, sessionCount, totalFocusMinutes }} 
-                        userId={user.id} 
-                    />
+
+                {/* Achievements Section */}
+                <div className="mb-8">
+                    <h2 className="pixel-font text-[8px] tracking-widest text-blue-200/50 mb-6 ml-2">{t('unlockable_archives')}</h2>
+                    <div className="p-4 bg-white/[0.02] border border-white/5 rounded-3xl">
+                        <Achievements 
+                            stats={{ streak, sessionCount, totalFocusMinutes }} 
+                            userId={user.id} 
+                        />
+                    </div>
                 </div>
-                
-                {/*Security */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                    <div className="stat-box">
-                        <h2 className="text-[8px] mb-6 text-slate-400"># {t('identity')}</h2>
+
+                {/* Config Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className="stat-card">
+                        <h2 className="pixel-font text-[8px] text-blue-300/40 mb-6">{t('core_identity')}</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">{t('username')}</label>
-                                <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="pixel-input" />
+                                <label className="pixel-font text-[6px] block mb-2 text-slate-500">{t('ALIAS')}</label>
+                                <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="glass-input" />
                             </div>
                             <div>
-                                <label className="text-[6px] block mb-2 text-slate-500">{t('daily_goal')}</label>
-                                <input type="number" value={dailyGoal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="pixel-input" />
+                                <label className="pixel-font text-[6px] block mb-2 text-slate-500">{t('DAILY_GOAL')} (MINS)</label>
+                                <input type="number" value={dailyGoal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="glass-input" />
                             </div>
                         </div>
                     </div>
 
-                    <div className="stat-box border-red-900/50">
-                        <h2 className="text-[8px] text-red-500 mb-6">! {t('security')}</h2>
+                    <div className="stat-card border-red-400/10">
+                        <h2 className="pixel-font text-[8px] text-red-300/40 mb-6">! {t('security_layer')}</h2>
                         <div className="space-y-4">
-                            <input type="password" placeholder={t('new_pass')} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pixel-input" />
-                            <input type="password" placeholder={t('confirm_pass')} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={`pixel-input ${confirmPassword && !passwordsMatch ? 'border-red-500' : ''}`} />
+                            <input type="password" placeholder={t('new_access_key')} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="glass-input" />
+                            <input type="password" placeholder={t('confirm_key')} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="glass-input" />
                         </div>
                     </div>
                 </div>
 
-                <button onClick={handleSaveProfile} className="pixel-btn-save">
-                    {">"} {t('execute_update')}
+                <button onClick={handleSaveProfile} className="btn-save-horizon pixel-font">
+                    {t('save_system_reconfig')}
                 </button>
             </div>
         </div>

@@ -5,20 +5,21 @@ import { supabase } from '../Auth/supabaseClient';
 
 interface InteractiveItem extends HomeItem {
   level: number;
+  lastInteracted?: string;
 }
 
 export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) => void }> = ({ user, updateCoins }) => {
   const { t, i18n } = useTranslation();
   const [items, setItems] = useState<InteractiveItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const GRID_SIZE = 10;
 
-  // 1. NATURE-RPG SHOP ITEMS
   const shopItems = useMemo(() => [
-    { id: 'shelf', name: t('books'), price: 20, icon: 'fa-scroll', color: 'bg-[#8d6e63]', action: t('sort') },
-    { id: 'lamp', name: t('lamp'), price: 15, icon: 'fa-fire', color: 'bg-[#ff9800]', action: t('glow') },
-    { id: 'plant', name: t('plant'), price: 10, icon: 'fa-seedling', color: 'bg-[#4caf50]', action: t('grow') },
-    { id: 'coffee', name: t('beans'), price: 40, icon: 'fa-flask', color: 'bg-[#78909c]', action: t('brew') },
-  ], [i18n.language, t]);
+    { id: 'shelf', name: 'Oak Bookshelf', price: 20, icon: 'fa-book-open', color: '#5F7A61', action: 'Organize' },
+    { id: 'lamp', name: 'Ambient Lamp', price: 15, icon: 'fa-lightbulb', color: '#B49B85', action: 'Light' },
+    { id: 'plant', name: 'Monstera', price: 10, icon: 'fa-leaf', color: '#81c784', action: 'Water' },
+    { id: 'desk', name: 'Minimalist Desk', price: 50, icon: 'fa-desktop', color: '#475569', action: 'Clean' },
+  ], [t]);
 
   const saveHomeToDB = async (updatedItems: InteractiveItem[]) => {
     await supabase.from('profiles').update({ home_layout: updatedItems }).eq('id', user.id);
@@ -28,23 +29,11 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
     const loadHome = async () => {
       if (!user?.id) return;
       const { data } = await supabase.from('profiles').select('home_layout').eq('id', user.id).single();
-
-      if (data?.home_layout) {
-        let needsUpdate = false;
-        const migratedItems = data.home_layout.map((item: any) => {
-          if (!item.itemTypeId) {
-            needsUpdate = true;
-            const match = shopItems.find(s => s.icon === item.icon);
-            return { ...item, itemTypeId: match ? match.id : 'unknown' };
-          }
-          return item;
-        });
-        setItems(migratedItems);
-        if (needsUpdate) saveHomeToDB(migratedItems);
-      }
+      if (data?.home_layout) setItems(data.home_layout);
+      setLoading(false);
     };
     loadHome();
-  }, [user.id, shopItems]);
+  }, [user.id]);
 
   const buyItem = (shopItem: any) => {
     if (items.some(i => i.itemTypeId === shopItem.id)) return;
@@ -53,14 +42,12 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
     const emptySlots: {x: number, y: number}[] = [];
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
-        const isOccupied = items.some(i => i.position.x === x && i.position.y === y);
-        if (!isOccupied) emptySlots.push({ x, y });
+        if (!items.some(i => i.position.x === x && i.position.y === y)) emptySlots.push({ x, y });
       }
     }
 
     if (emptySlots.length > 0) {
-      const randomIndex = Math.floor(Math.random() * emptySlots.length);
-      const newPos = emptySlots[randomIndex];
+      const newPos = emptySlots[Math.floor(Math.random() * emptySlots.length)];
       updateCoins(-shopItem.price);
       
       const newItem: InteractiveItem = {
@@ -77,118 +64,144 @@ export const TinyHomeView: React.FC<{ user: User; updateCoins: (amount: number) 
       const updated = [...items, newItem];
       setItems(updated);
       saveHomeToDB(updated);
-    } else {
-      alert(t('room_full'));
     }
   };
 
-  const upgradeItem = (id: string) => {
-    const cost = 15;
-    if (user.coins < cost) return;
-    const updated = items.map(item => item.id === id ? { ...item, level: (item.level || 1) + 1 } : item);
-    updateCoins(-cost);
+  const interactWithItem = (id: string) => {
+    const updated = items.map(item => {
+      if (item.id === id) {
+        return { ...item, level: item.level + 1, lastInteracted: new Date().toISOString() };
+      }
+      return item;
+    });
     setItems(updated);
     saveHomeToDB(updated);
   };
 
   return (
-    <div className="haven-scope flex flex-col min-h-full gap-4 p-4 pb-24 overflow-y-auto lg:overflow-hidden">
-      
+    <div className="study-font flex flex-col min-h-full gap-6 p-6 pb-24 overflow-y-auto">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@700&display=swap');
-        
-        .haven-scope { image-rendering: pixelated; }
-        .haven-scope *:not(i) { font-family: 'Press Start 2P', 'LXGW WenKai TC', monospace !important; text-transform: uppercase; }
-        
-        /* The Parchment/Wood Border */
-        .pixel-border-nature { 
-          background: #fffdf5; 
-          border: 6px solid #3e2723; 
-          box-shadow: 8px 8px 0 0 #2a1b0a;
-          background-image: repeating-linear-gradient(90deg, #fdf4db, #fdf4db 2px, transparent 2px, transparent 4px),
-                            repeating-linear-gradient(0deg, #fdf4db, #fdf4db 2px, transparent 2px, transparent 4px);
-          background-size: 8px 8px;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Lexend:wght@600&display=swap');
+        .study-font { font-family: 'Inter', sans-serif; }
+        .heading-font { font-family: 'Lexend', sans-serif; }
+
+        .studio-floor {
+          background-color: #f8fafc;
+          background-image: 
+            linear-gradient(rgba(95, 122, 97, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(95, 122, 97, 0.05) 1px, transparent 1px);
+          background-size: 10% 10%;
+          border-radius: 24px;
+          border: 2px solid #e2e8f0;
+          aspect-ratio: 1 / 1;
+          position: relative;
+          box-shadow: inset 0 2px 10px rgba(0,0,0,0.02);
         }
 
-        /* Grass Grid */
-        .room-grid { 
-          background-color: #4caf50; 
-          background-image: linear-gradient(to right, #388e3c 2px, transparent 2px), 
-                            linear-gradient(to bottom, #388e3c 2px, transparent 2px); 
-          background-size: 10% 10%; 
-          aspect-ratio: 1 / 1; 
-          width: 100%; 
-          position: relative; 
-          border: 6px solid #3e2723; 
+        .furniture-item {
+          transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
         }
 
-        .haven-scope i { font-family: "Font Awesome 6 Free" !important; text-transform: none !important; font-weight: 900; }
-        
-        .item-node {
-          transition: transform 0.1s;
-          box-shadow: 4px 4px 0 0 #2a1b0a;
+        .furniture-item:hover {
+          transform: scale(1.1) translateY(-5px);
+          z-index: 50;
         }
-        .item-node:hover { transform: scale(1.1); z-index: 50; }
+
+        .lvl-badge {
+          font-size: 9px;
+          font-weight: 800;
+          background: #1e293b; /* Darker for contrast */
+          color: white;
+          padding: 2px 6px;
+          border-radius: 6px;
+          position: absolute;
+          top: 0;
+          right: 0;
+          transform: translate(30%, -30%); /* Offset from icon box */
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          pointer-events: none;
+        }
       `}</style>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1">
         
-        {/* CAMP VIEW */}
-        <div className="lg:col-span-2 pixel-border-nature p-4 md:p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-4 text-[#3e2723]">
-            <h2 className="text-[10px] border-b-4 border-[#3e2723] pb-1">⛺ {t('study_zone')}</h2>
-            <div className="bg-[#ffaa00] text-white px-3 py-1 border-4 border-[#3e2723] text-[10px] font-bold shadow-[4px_4px_0_0_#3e2723]">
-              GOLD: {user.coins}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex justify-between items-end px-2">
+            <div>
+              <h2 className="heading-font text-xl text-slate-800">Your Study Haven</h2>
+              <p className="text-sm text-slate-500">Decorate your focus space as you grow.</p>
+            </div>
+            <div className="px-4 py-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
+              <span className="text-xs font-bold text-slate-400 mr-2 uppercase tracking-widest">Balance</span>
+              <span className="font-bold text-[#5F7A61]">{user.coins} 🪙</span>
             </div>
           </div>
 
-          <div className="room-grid shadow-inner">
+          <div className="studio-floor">
             {items.map((item) => {
               const shopData = shopItems.find(s => s.id === item.itemTypeId);
               return (
                 <div
                   key={item.id}
-                  onClick={() => upgradeItem(item.id)}
-                  className={`absolute w-[10%] h-[10%] ${shopData?.color || 'bg-white'} border-2 md:border-4 border-[#3e2723] flex items-center justify-center cursor-pointer z-20 item-node`}
+                  onClick={() => interactWithItem(item.id)}
+                  className="absolute w-[10%] h-[10%] flex items-center justify-center cursor-pointer furniture-item"
                   style={{ left: `${item.position.x * 10}%`, top: `${item.position.y * 10}%` }}
                 >
-                  <i className={`fas ${item.icon} text-white text-[10px] md:text-lg`}></i>
-                  <div className="absolute -top-3 -right-3 bg-[#fffdf5] text-[#3e2723] text-[6px] md:text-[8px] font-bold px-1 border-2 border-[#3e2723] z-30">
-                    ★{item.level}
+                  <div className="w-[80%] h-[80%] rounded-xl flex items-center justify-center text-white relative"
+                       style={{ backgroundColor: shopData?.color || '#5F7A61' }}>
+                    <i className={`fas ${item.icon} text-lg`}></i>
+                    <div className="lvl-badge">Lv{item.level}</div>
                   </div>
                 </div>
               );
             })}
           </div>
-          <p className="text-[6px] mt-4 text-[#8d6e63] text-center italic">TAP AN ITEM TO UPGRADE FOR 15 GOLD</p>
         </div>
 
-        {/* TRADER VIEW */}
-        <section className="pixel-border-nature p-6 h-fit lg:h-full lg:overflow-y-auto">
-          <h3 className="text-center mb-6 text-[10px] text-[#3e2723] underline decoration-double tracking-widest">💰 {t('shop_list')}</h3>
-          <div className="grid grid-cols-1 gap-4">
-            {shopItems.map((item) => {
-              const isOwned = items.some(i => i.itemTypeId === item.id);
-              return (
-                <button
-                  key={item.id}
-                  disabled={isOwned}
-                  onClick={() => buyItem(item)}
-                  className={`w-full p-3 flex items-center gap-4 border-4 border-[#3e2723] text-[#3e2723] transition-all ${isOwned ? 'bg-[#d7ccc8] opacity-50 cursor-not-allowed' : 'bg-white active:translate-x-1 active:translate-y-1 active:shadow-none shadow-[4px_4px_0_0_#3e2723]'}`}
-                >
-                  <div className={`${item.color} w-10 h-10 border-2 border-[#3e2723] flex items-center justify-center text-white shrink-0`}>
-                    <i className={`fas ${item.icon}`}></i>
-                  </div>
-                  <div className="text-left flex-1">
-                    <p className="text-[8px] mb-1 leading-none font-bold">{item.name}</p>
-                    <p className="text-[7px]">{isOwned ? "ALREADY OWNED" : `${item.price} GOLD`}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
+        <div className="space-y-6">
+          <section className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">Focus Quests</h3>
+            <div className="space-y-3">
+              <div className="p-4 rounded-2xl bg-[#F7F9F9] border border-slate-50">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-semibold">Morning Scribe</span>
+                  <span className="text-[10px] text-[#5F7A61]">+10 🪙</span>
+                </div>
+                <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#5F7A61]" style={{ width: '60%' }}></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">Catalog</h3>
+            <div className="grid grid-cols-1 gap-3">
+              {shopItems.map((item) => {
+                const isOwned = items.some(i => i.itemTypeId === item.id);
+                return (
+                  <button
+                    key={item.id}
+                    disabled={isOwned}
+                    onClick={() => buyItem(item)}
+                    className={`group w-full p-3 flex items-center gap-4 rounded-2xl border transition-all ${isOwned ? 'bg-slate-50 border-transparent opacity-50' : 'bg-white border-slate-100 hover:border-[#5F7A61] hover:shadow-md'}`}
+                  >
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0"
+                         style={{ backgroundColor: item.color }}>
+                      <i className={`fas ${item.icon}`}></i>
+                    </div>
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{item.name}</p>
+                      <p className="text-xs text-slate-500">{isOwned ? "Already Placed" : `${item.price} Coins`}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
