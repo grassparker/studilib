@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../../types';
 import { supabase } from '../Auth/supabaseClient';
+import { GlobalChat } from './GlobalChat';
 
 interface OverviewProps {
   user: User;
@@ -194,7 +195,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                 }) : (
                   <div className="py-16 text-center glass-card bg-transparent">
                     <i className="fas fa-satellite-dish text-slate-600 text-3xl mb-6"></i>
-                    <p className="pixel-font text-[8px] text-slate-500 mb-8 tracking-widest leading-loose">
+                    <p className="pixel-font text-[8px] text-slate-600 mb-8 tracking-widest leading-loose">
                       {t('no_protocols_detected')}
                     </p>
                     <button onClick={() => navigate('/app/schedule')} className="btn-horizon">
@@ -204,6 +205,10 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                 )}
               </div>
             </section>
+            <GlobalChat 
+              userId={user.id} 
+              username={user.username || 'OPERATOR'} 
+            />
           </div>
 
           {/* SIDEBAR: SOCIAL & SYSTEM */}

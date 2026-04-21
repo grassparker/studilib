@@ -200,7 +200,7 @@ export const Chat: React.FC<ChatProps> = ({ groupId, userId, username }) => {
                     isMe ? 'bubble-mine text-white' : 'bubble-theirs text-blue-100'
                   }`}
                 >
-                  <p className="leading-relaxed break-words whitespace-pre-wrap">
+                  <p className="leading-relaxed wrap-break-word whitespace-pre-wrap">
                     {msg.content}
                   </p>
                 </div>
