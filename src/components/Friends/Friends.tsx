@@ -74,7 +74,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#000d3d] via-[#1a478a] to-[#7a98b9] p-4 md:p-8 tech-font text-white selection:bg-[#e6ccb2] selection:text-[#000d3d]">
+    <div className="min-h-screen bg-linear-to-b from-[#000d3d] via-[#1a478a] to-[#7a98b9] p-4 md:p-8 tech-font text-white selection:bg-[#e6ccb2] selection:text-[#000d3d]">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;700&display=swap');
         
@@ -126,7 +126,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
         }
       `}</style>
 
-      <div className="max-w-[1400px] mx-auto space-y-12 pb-20">
+      <div className="max-w-350 mx-auto space-y-12 pb-20">
         
         {/* 1. GUILDS SECTION */}
         <section>
@@ -139,7 +139,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
           
           <div className="flex gap-6 overflow-x-auto pb-6 guild-strip outline-none snap-x">
             {groups.map(group => (
-              <div key={group.id} className="glass-card p-6 min-w-[200px] flex flex-col items-center group relative snap-center">
+              <div key={group.id} className="glass-card p-6 min-w-50 flex flex-col items-center group relative snap-center">
                 <div onClick={() => navigate(`/guild/${group.id}`)} className="cursor-pointer text-center w-full">
                   <div className="w-16 h-16 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center mx-auto mb-4 group-hover:border-[#e6ccb2] transition-colors shadow-xl">
                     <span className="text-3xl filter drop-shadow-md">🛡️</span>
@@ -156,7 +156,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
               </div>
             ))}
             
-            <div onClick={() => openModal()} className="glass-card p-6 min-w-[200px] border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer group snap-center">
+            <div onClick={() => openModal()} className="glass-card p-6 min-w-50 border-dashed border-white/20 flex flex-col items-center justify-center cursor-pointer group snap-center">
                <div className="w-12 h-12 rounded-full border-2 border-dashed border-white/30 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:border-[#e6ccb2] transition-all">
                   <i className="fas fa-plus text-[#e6ccb2]"></i>
                </div>
@@ -227,7 +227,7 @@ export const Friends: React.FC<{ user: User }> = ({ user }) => {
 
       {/* MODAL overlay */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[200] bg-[#000d3d]/90 backdrop-blur-xl flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-200 bg-[#000d3d]/90 backdrop-blur-xl flex items-center justify-center p-6">
           <div className="glass-card p-8 md:p-10 w-full max-w-md border-[#e6ccb2]/20 shadow-2xl">
             <h2 className="pixel-font text-[10px] text-[#e6ccb2] mb-8 border-b border-white/10 pb-6 uppercase tracking-widest">
               {editingGroup ? 'Modify Guild' : 'Found New Guild'}

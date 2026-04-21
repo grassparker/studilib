@@ -269,7 +269,7 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
       {/* HEADER: Navigation */}
       <div className="flex flex-col md:flex-row justify-between items-center pb-6 border-b border-white/10 gap-6">
         <div className="flex items-center justify-between w-full md:w-auto gap-4">
-          <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d.toISOString().split('T')[0]); }} className="btn-ghost-horizon w-10 h-10 flex items-center justify-center flex-shrink-0">
+          <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() - 1); setSelectedDate(d.toISOString().split('T')[0]); }} className="btn-ghost-horizon w-10 h-10 flex items-center justify-center shrink-0">
             <i className="fas fa-chevron-left text-xs"></i>
           </button>
           <div className="text-center">
@@ -280,7 +280,7 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
               {new Date(selectedDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
           </div>
-          <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d.toISOString().split('T')[0]); }} className="btn-ghost-horizon w-10 h-10 flex items-center justify-center flex-shrink-0">
+          <button onClick={() => { const d = new Date(selectedDate); d.setDate(d.getDate() + 1); setSelectedDate(d.toISOString().split('T')[0]); }} className="btn-ghost-horizon w-10 h-10 flex items-center justify-center shrink-0">
             <i className="fas fa-chevron-right text-xs"></i>
           </button>
         </div>
@@ -290,7 +290,7 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
             <i className={`fas fa-sync-alt text-xs ${loading ? 'animate-spin' : ''}`}></i>
             <span className="text-[10px] font-bold uppercase tracking-wider">{t('sync')}</span>
           </button>
-          <button onClick={() => setViewMode(viewMode === 'day' ? 'month' : 'day')} className="btn-horizon flex-[2] md:flex-none px-4 py-3 text-[10px] uppercase tracking-widest font-bold">
+          <button onClick={() => setViewMode(viewMode === 'day' ? 'month' : 'day')} className="btn-horizon flex-2 md:flex-none px-4 py-3 text-[10px] uppercase tracking-widest font-bold">
             {viewMode === 'day' ? t('grid_view') : t('open_log')}
           </button>
         </div>
@@ -318,10 +318,10 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
             <input type="text" placeholder={t('ical_source_url')} value={icsUrlInput} onChange={e => setIcsUrlInput(e.target.value)} className="input-horizon mb-4" />
             <div className="flex flex-col items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${currentIcsUrl ? 'bg-blue-400 animate-pulse shadow-[0_0_8px_#60a5fa]' : 'bg-red-500'}`}></span>
+                <span className={`w-2 h-2 rounded-full shrink-0 ${currentIcsUrl ? 'bg-blue-400 animate-pulse shadow-[0_0_8px_#60a5fa]' : 'bg-red-500'}`}></span>
                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-tighter truncate">{currentIcsUrl ? t('bound') : t('offline')}</span>
               </div>
-              <button onClick={updateIcsUrl} className="text-[9px] font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase flex-shrink-0">{t('bind_source')}</button>
+              <button onClick={updateIcsUrl} className="text-[9px] font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase shrink-0">{t('bind_source')}</button>
             </div>
           </div>
         </div>
@@ -390,9 +390,9 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
                 return (
                   <div key={cat} className="group/cat">
                     <div className="flex items-center gap-3 mb-4 md:mb-6">
-                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                      <div className="h-px flex-1 bg-linear-to-r from-transparent via-white/10 to-transparent"></div>
                       <h3 className="text-[7px] md:text-[8px] pixel-font text-slate-500 tracking-[0.2em] md:tracking-[0.3em] uppercase">{cat}</h3>
-                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                      <div className="h-px flex-1 bg-linear-to-r from-transparent via-white/10 to-transparent"></div>
                     </div>
                     <div className="space-y-3">
                       {catTasks.map(task => {
@@ -402,19 +402,19 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
                           <div key={task.id} onClick={() => setSelectedQuest(task)} className={`group/item quest-card flex items-center justify-between p-4 md:p-5 cursor-pointer backdrop-blur-md ${taskStyle}`}>
                             <div className="flex items-center gap-3 md:gap-5 overflow-hidden">
                               {task.start_time === '00:00:00' ? (
-                                <div onClick={(e) => e.stopPropagation()} className="flex items-center flex-shrink-0">
+                                <div onClick={(e) => e.stopPropagation()} className="flex items-center shrink-0">
                                   <div className={`w-5 h-5 md:w-6 md:h-6 rounded-lg border flex items-center justify-center transition-all ${isFullyDone ? 'bg-[#e6ccb2] border-[#e6ccb2]' : 'border-white/20'}`} onClick={() => toggleAllSubTasks(task)}>
                                     {isFullyDone && <i className="fas fa-check text-[#000d3d] text-[10px]"></i>}
                                   </div>
                                 </div>
                               ) : (
-                                <span className="text-[11px] md:text-xs font-bold font-mono opacity-60 min-w-[40px] md:min-w-[45px] flex-shrink-0">{task.start_time.slice(0, 5)}</span>
+                                <span className="text-[11px] md:text-xs font-bold font-mono opacity-60 min-w-10 md:min-w-11.25 shrink-0">{task.start_time.slice(0, 5)}</span>
                               )}
                               <span className={`text-sm md:text-base font-semibold tracking-tight truncate ${isFullyDone ? 'line-through opacity-30' : ''}`}>
                                 {task.title}
                               </span>
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="opacity-0 group-hover/item:opacity-100 text-slate-500 hover:text-red-400 transition-all p-2 flex-shrink-0">
+                            <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="opacity-0 group-hover/item:opacity-100 text-slate-500 hover:text-red-400 transition-all p-2 shrink-0">
                               <i className="fas fa-trash-alt text-xs"></i>
                             </button>
                           </div>
@@ -432,17 +432,17 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
 
       {/* DETAIL MODAL */}
       {selectedQuest && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 md:p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-3 md:p-4">
           <div className="absolute inset-0 bg-[#000d3d]/90 backdrop-blur-md md:backdrop-blur-xl" onClick={() => setSelectedQuest(null)} />
           <div className="glass-hud w-full max-w-xl relative shadow-2xl border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#e6ccb2] to-transparent"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-[#e6ccb2] to-transparent"></div>
             
             <div className="flex gap-7 justify-between items-start mb-6 md:mb-8">
               <div className="overflow-hidden">
                 <p className="text-[7px] pixel-font text-[#e6ccb2] mb-2 tracking-[0.2em]">{t('mission_intel')}</p>
                 <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-tight truncate">{selectedQuest.title}</h2>
               </div>
-              <button onClick={() => setSelectedQuest(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition-colors flex-shrink-0">
+              <button onClick={() => setSelectedQuest(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition-colors shrink-0">
                 <i className="fas fa-times text-slate-400"></i>
               </button>
             </div>
@@ -454,12 +454,12 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
                   {selectedQuest.sub_tasks?.map(st => (
                     <div key={st.id} className="flex items-center justify-between p-3 md:p-4 bg-white/5 rounded-xl border border-white/5 group/milestone">
                       <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
-                        <div onClick={() => toggleSubTask(selectedQuest.id, st.id, st.done)} className={`w-5 h-5 rounded-md border flex items-center justify-center cursor-pointer transition-all flex-shrink-0 ${st.done ? 'bg-blue-400 border-blue-400' : 'border-white/20'}`}>
+                        <div onClick={() => toggleSubTask(selectedQuest.id, st.id, st.done)} className={`w-5 h-5 rounded-md border flex items-center justify-center cursor-pointer transition-all shrink-0 ${st.done ? 'bg-blue-400 border-blue-400' : 'border-white/20'}`}>
                           {st.done && <i className="fas fa-check text-[8px] text-[#000d3d]"></i>}
                         </div>
                         <span className={`text-sm font-medium truncate ${st.done ? 'line-through text-slate-500' : 'text-slate-200'}`}>{st.text}</span>
                       </div>
-                      <button onClick={() => deleteSubTask(st.id)} className="opacity-0 group-hover/milestone:opacity-100 text-slate-600 hover:text-red-400 p-2 transition-all flex-shrink-0">
+                      <button onClick={() => deleteSubTask(st.id)} className="opacity-0 group-hover/milestone:opacity-100 text-slate-600 hover:text-red-400 p-2 transition-all shrink-0">
                         <i className="fas fa-trash-alt text-[10px]"></i>
                       </button>
                     </div>
@@ -467,7 +467,7 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
                 </div>
                 <div className="flex gap-2 mt-4">
                   <input type="text" placeholder="Add a milestone..." value={newSubTaskText} onChange={e => setNewSubTaskText(e.target.value)} className="input-horizon" onKeyDown={(e) => e.key === 'Enter' && addSubTask()} />
-                  <button onClick={addSubTask} className="btn-horizon px-5 md:px-6 flex-shrink-0">
+                  <button onClick={addSubTask} className="btn-horizon px-5 md:px-6 shrink-0">
                     <i className="fas fa-plus text-xs md:hidden"></i>
                     <span className="hidden md:inline">{t('add')}</span>
                   </button>
@@ -476,7 +476,7 @@ export const Schedule: React.FC<{ user: User }> = ({ user }) => {
 
               <div>
                 <h4 className="text-[8px] pixel-font text-slate-500 mb-4 tracking-[0.3em] uppercase">{t('mission_notes')}</h4>
-                <textarea value={memoText} onChange={e => setMemoText(e.target.value)} className="input-horizon min-h-[120px] md:min-h-[140px] resize-none text-slate-300" placeholder={t('record_observations')} />
+                <textarea value={memoText} onChange={e => setMemoText(e.target.value)} className="input-horizon min-h-30 md:min-h-35 resize-none text-slate-300" placeholder={t('record_observations')} />
               </div>
 
               <div className="flex gap-4 pt-2 pb-2">

@@ -30,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
   return (
     <>
       {/* MOBILE HEADER - Sleeker Floating Design */}
-      <div className="md:hidden fixed top-0 left-0 w-full h-16 bg-[#000d3d]/90 backdrop-blur-lg border-b border-white/10 z-[100] px-6 flex justify-between items-center shadow-xl">
+      <div className="md:hidden fixed top-0 left-0 w-full h-16 bg-[#000d3d]/90 backdrop-blur-lg border-b border-white/10 z-100 px-6 flex justify-between items-center shadow-xl">
         <h2 className="text-[10px] text-blue-200 font-pixel tracking-tighter">
           <i className="fas fa-feather-alt mr-2 text-blue-400"></i> STUDILIB
         </h2>
@@ -55,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
         fixed inset-y-0 left-0 w-64 bg-[#000826]/80 backdrop-blur-2xl border-r border-white/5 flex flex-col transition-all duration-500 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
         md:relative md:translate-x-0 md:flex
-        z-[110] h-screen
+        z-110 h-screen
       `}>
         
         <style>{`
@@ -154,7 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
 
         {/* FOOTER / LOGOUT */}
         <div className="p-6 mt-auto">
-          <div className="menu-container-tech !bg-transparent !m-0 !mb-6 border border-white/5 p-4">
+          <div className="menu-container-tech bg-transparent! m-0! mb-6! border border-white/5 p-4">
             <button 
               onClick={onLogout}
               className="w-full flex items-center gap-4 px-2 py-1 text-slate-500 hover:text-red-400 transition-colors group"
@@ -165,7 +165,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
           </div>
           
           <div className="flex flex-col items-center gap-2 opacity-30">
-            <div className="h-[1px] w-8 bg-blue-300/50"></div>
+            <div className="h-px w-8 bg-blue-300/50"></div>
             <p className="text-[6px] text-blue-200 font-pixel uppercase tracking-[0.3em]">
               SYS_REV_{packageJson.version}
             </p>
@@ -175,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout }) => {
 
       {/* OVERLAY FOR MOBILE */}
       {isOpen && (
-        <div className="fixed inset-0 bg-[#000d3d]/60 backdrop-blur-md z-[105] md:hidden" onClick={() => setIsOpen(false)} />
+        <div className="fixed inset-0 bg-[#000d3d]/60 backdrop-blur-md z-105 md:hidden" onClick={() => setIsOpen(false)} />
       )}
     </>
   );

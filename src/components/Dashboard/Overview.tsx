@@ -248,7 +248,7 @@ export const Overview: React.FC<OverviewProps> = ({ user }) => {
                   </div>
                 )}
                 
-                <button onClick={() => navigate('/app/social')} className="w-full btn-horizon !text-[7px] mt-4">
+                <button onClick={() => navigate('/app/social')} className="w-full btn-horizon text-[7px] mt-4">
                   {t('social_hub')}
                 </button>
               </div>

@@ -84,7 +84,7 @@ export default function FriendsProfile({ isOpen, onClose, user }: FriendsProfile
 
     return (
         /* z-[9999] and fixed inset-0 ensures it occupies the entire viewport */
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#000d3d] tech-font">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-[#000d3d] tech-font">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;700&display=swap');
                 

@@ -97,7 +97,7 @@ export const Achievements: React.FC<{ stats: any, userId: string }> = ({ stats, 
         return (
           <div 
             key={ach.id}
-            className={`ach-card p-6 flex flex-col items-center justify-center text-center min-h-[160px] ${
+            className={`ach-card p-6 flex flex-col items-center justify-center text-center min-h-40 ${
               isUnlocked ? 'ach-unlocked' : 'ach-locked'
             }`}
           >

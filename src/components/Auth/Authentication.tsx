@@ -253,9 +253,9 @@ export const AuthForms: React.FC<AuthFormsProps> = ({ onLogin }) => {
 
           <div className="mt-10 flex flex-col items-center gap-3">
             <div className="flex items-center gap-3 w-full opacity-10">
-               <span className="h-[1px] flex-1 bg-white"></span>
+               <span className="h-px flex-1 bg-white"></span>
                <i className="fas fa-star text-[8px] text-white"></i>
-               <span className="h-[1px] flex-1 bg-white"></span>
+               <span className="h-px flex-1 bg-white"></span>
             </div>
             <p className="text-[6px] pixel-font text-white/30 uppercase tracking-[0.3em]">
               Secure Horizon Connection

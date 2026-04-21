@@ -67,7 +67,7 @@ export const GlobalChat = ({ userId, username }: { userId: string, username: str
 
   return (
     <div 
-      className="flex flex-col h-[450px] rounded-3xl overflow-hidden relative backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"
+      className="flex flex-col h-112.5 rounded-3xl overflow-hidden relative backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)]"
       style={{ 
         // Semi-transparent gradient to let the background blur peek through
         background: 'linear-gradient(180deg, rgba(0, 13, 61, 0.6) 0%, rgba(26, 71, 138, 0.4) 40%, rgba(122, 152, 185, 0.2) 80%, rgba(230, 204, 178, 0.1) 120%)' 
@@ -129,7 +129,7 @@ export const GlobalChat = ({ userId, username }: { userId: string, username: str
                   {new Date(m.created_at).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-              <p className={`text-[11px] leading-relaxed font-mono break-words p-3 rounded-2xl backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.1)] border
+              <p className={`text-[11px] leading-relaxed font-mono wrap-break-word p-3 rounded-2xl backdrop-blur-md shadow-[0_4px_30px_rgba(0,0,0,0.1)] border
                 ${isMe 
                   ? 'bg-white/10 border-white/20 text-white border-r-[#e6ccb2]/60 ml-4 rounded-tr-sm' 
                   : 'bg-black/20 border-white/10 text-white/90 border-l-[#7a98b9]/60 mr-4 rounded-tl-sm'

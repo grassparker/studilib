@@ -225,8 +225,8 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
         </div>
         
         <div className="flex gap-4">
-            <button onClick={toggleFullscreen} className="btn-nav !p-3 aspect-square flex items-center justify-center"><i className="fas fa-expand-alt"></i></button>
-            <button onClick={() => setIsJournalOpen(true)} className="btn-nav !bg-[#e6ccb2]/10 !text-[#e6ccb2] border-[#e6ccb2]/30 flex items-center gap-3 px-8">
+            <button onClick={toggleFullscreen} className="btn-nav p-3 aspect-square flex items-center justify-center"><i className="fas fa-expand-alt"></i></button>
+            <button onClick={() => setIsJournalOpen(true)} className="btn-nav bg-[#e6ccb2]/10! text-[#e6ccb2]! border-[#e6ccb2]/30 flex items-center gap-3 px-8">
                 <i className="fas fa-feather-alt text-xs"></i>
                 <span className="font-bold tracking-[0.2em]">{t('journal')}</span>
             </button>
@@ -234,7 +234,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
       </div>
 
       {/* MAIN ALTAR */}
-      <div className="glass-altar w-full max-w-[500px] h-[550px] flex flex-col items-center justify-center p-12 overflow-hidden">
+      <div className="glass-altar w-full max-w-125 h-137.5 flex flex-col items-center justify-center p-12 overflow-hidden">
         {/* PROGRESS RING */}
         <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-12">
           <circle cx="50%" cy="50%" r="42%" fill="none" stroke="rgba(230,204,178,0.03)" strokeWidth="1" />
@@ -266,7 +266,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
                             type="number" 
                             value={customSettings[mode] || ''}
                             onChange={(e) => handleManualTimeChange(e.target.value)}
-                            className="bg-transparent text-[110px] w-[180px] text-center outline-none border-b border-[#e6ccb2]/20 focus:border-[#e6ccb2] transition-all text-[#e6ccb2] font-light time-text"
+                            className="bg-transparent text-[110px] w-45 text-center outline-none border-b border-[#e6ccb2]/20 focus:border-[#e6ccb2] transition-all text-[#e6ccb2] font-light time-text"
                         />
                         <span className="absolute -right-10 bottom-6 text-sm uppercase tracking-widest text-[#7a98b9]">min</span>
                     </div>
@@ -312,7 +312,7 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
       </div>
 
       {isJournalOpen && (
-        <div className="fixed inset-0 bg-[#000d3d]/80 backdrop-blur-md z-[90] lg:hidden" onClick={() => setIsJournalOpen(false)}></div>
+        <div className="fixed inset-0 bg-[#000d3d]/80 backdrop-blur-md z-90 lg:hidden" onClick={() => setIsJournalOpen(false)}></div>
       )}
     </div>
   );

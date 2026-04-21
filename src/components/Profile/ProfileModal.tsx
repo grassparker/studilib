@@ -86,7 +86,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-150 flex items-center justify-center p-4">
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
                 
@@ -218,7 +218,7 @@ export default function ProfileModal({ isOpen, onClose, user, onProfileUpdate }:
                 {/* Achievements Section */}
                 <div className="mb-8">
                     <h2 className="pixel-font text-[8px] tracking-widest text-blue-200/50 mb-6 ml-2">{t('unlockable_archives')}</h2>
-                    <div className="p-4 bg-white/[0.02] border border-white/5 rounded-3xl">
+                    <div className="p-4 bg-white/2 border border-white/5 rounded-3xl">
                         <Achievements 
                             stats={{ streak, sessionCount, totalFocusMinutes }} 
                             userId={user.id} 

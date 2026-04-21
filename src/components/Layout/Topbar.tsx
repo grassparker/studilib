@@ -35,7 +35,7 @@ export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
 
   return (
     <>
-      <header className="h-20 bg-[#000d3d]/40 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-4 md:px-8 z-[60] relative transition-all">
+      <header className="h-20 bg-[#000d3d]/40 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-4 md:px-8 z-60 relative transition-all">
         <style>{`
           @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
           .pixel-font { font-family: 'Press Start 2P', monospace; }
@@ -125,8 +125,8 @@ export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
         {/* MOBILE COLLAPSIBLE MENU */}
         <div className={`
           absolute top-20 left-0 w-full bg-[#000d3d]/95 backdrop-blur-2xl border-b border-white/10 
-          transition-all duration-300 overflow-hidden z-[55] md:hidden
-          ${isMobileNavOpen ? 'max-h-[400px] py-4 shadow-2xl' : 'max-h-0 py-0'}
+          transition-all duration-300 overflow-hidden z-55 md:hidden
+          ${isMobileNavOpen ? 'max-h-100 py-4 shadow-2xl' : 'max-h-0 py-0'}
         `}>
           <div className="flex flex-col px-6 gap-2">
             {menuItems.map((item) => (
@@ -159,7 +159,7 @@ export const TopBar: React.FC<TopBarProps> = ({ user, onAvatarClick }) => {
       {/* Background Overlay when mobile menu is open */}
       {isMobileNavOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 z-[50] md:hidden" 
+          className="fixed inset-0 bg-black/40 z-50 md:hidden" 
           onClick={() => setIsMobileNavOpen(false)}
         />
       )}

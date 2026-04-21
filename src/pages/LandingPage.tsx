@@ -46,7 +46,7 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen relative overflow-x-hidden transition-all duration-300 ${isFlashing ? 'bg-white' : 'bg-gradient-to-b from-[#000d3d] via-[#1a478a] via-[#7a98b9] to-[#e6ccb2]'}`}>
+    <div className={`min-h-screen relative overflow-x-hidden transition-all duration-300 ${isFlashing ? 'bg-white' : 'bg-linear-to-b from-[#000d3d] via-[#1a478a] to-[#e6ccb2]'}`}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;700&display=swap');
         
@@ -114,7 +114,7 @@ export const LandingPage: React.FC = () => {
       </button>
 
       {/* HERO SECTION */}
-      <div className="max-w-[1400px] mx-auto px-6 pt-32 pb-20 md:pt-48 md:pb-32 text-center">
+      <div className="max-w-350 mx-auto px-6 pt-32 pb-20 md:pt-48 md:pb-32 text-center">
         <div className="flex items-center justify-center gap-3 mb-6">
           <span className="w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_12px_#60a5fa] animate-pulse"></span>
           <p className="pixel-font text-[8px] md:text-[10px] text-blue-200 tracking-[0.4em] uppercase">
@@ -143,7 +143,7 @@ export const LandingPage: React.FC = () => {
       </div>
 
       {/* GRID LAYOUT */}
-      <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-32">
+      <div className="max-w-350 mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 mb-32">
         
         {/* MISSION SECTION */}
         <div className="glass-card p-8 md:p-12 tech-font">
@@ -189,7 +189,7 @@ export const LandingPage: React.FC = () => {
       </div>
 
       {/* PARTNER MODULE */}
-      <div className="max-w-[1400px] mx-auto px-6 mb-32">
+      <div className="max-w-350uto px-6 mb-32">
         <div className="glass-card overflow-hidden">
           <div className="flex flex-col md:flex-row items-center gap-10 p-8 md:p-12">
             <div className="relative">
@@ -220,7 +220,7 @@ export const LandingPage: React.FC = () => {
       </div>
 
       {/* FOOTER */}
-      <footer className="max-w-[1400px] mx-auto px-6 pb-12">
+      <footer className="max-w-350 mx-auto px-6 pb-12">
         <div className="pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col md:flex-row gap-6 md:gap-12 pixel-font text-[7px] text-white/70 tracking-widest uppercase">
             <span>LOC: KUALA_LUMPUR</span>
@@ -232,7 +232,7 @@ export const LandingPage: React.FC = () => {
             <button onClick={() => navigate('/updates')} className="pixel-font text-[8px] text-blue-900 hover:text-white transition-colors">
               {hasRecentUpdate() ? "▲ UPDATE_AVAILABLE" : "VIEW_LOGS"}
             </button>
-            <p className="tech-font text-[10px] bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent font-medium tracking-widest uppercase">
+            <p className="tech-font text-[10px] bg-linear-to-r from-blue-400 via-indigo-500 to-purple-600 bg-clip-text text-transparent font-medium tracking-widest uppercase">
               © 2026 CANDY // TWILIGHT_INTERFACE
             </p>
           </div>
@@ -241,7 +241,7 @@ export const LandingPage: React.FC = () => {
 
       {/* POPUP */}
       {showPopup && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#000d3d]/80 backdrop-blur-xl">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-[#000d3d]/80 backdrop-blur-xl">
           <div className="glass-card max-w-md w-full p-8 md:p-10 border-blue-400/30 shadow-2xl">
             <div className="pixel-font text-[7px] text-blue-300 bg-blue-400/10 px-3 py-1 rounded inline-block mb-6 uppercase tracking-widest">
               Incoming_Signal

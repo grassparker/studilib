@@ -133,7 +133,7 @@ export const SharedPomodoro: React.FC<SharedPomodoroProps> = ({ groupId, isLeade
         }
       `}</style>
 
-      <div className="relative flex items-center justify-center w-[300px] h-[300px] mb-10">
+      <div className="relative flex items-center justify-center w-75 h-75 mb-10">
         <div className="sonar-ring">
            {status !== 'IDLE' && <div className="sonar-wave" style={{ borderColor: status === 'STUDY' ? 'rgba(96, 165, 250, 0.2)' : 'rgba(230, 204, 178, 0.2)' }} />}
            <div className="w-[90%] h-[90%] border-4 border-white/5 rounded-full flex flex-col items-center justify-center bg-[#000d3d]/20 backdrop-blur-sm">
@@ -155,7 +155,7 @@ export const SharedPomodoro: React.FC<SharedPomodoroProps> = ({ groupId, isLeade
       </div>
       
       {isLeader ? (
-        <div className="flex flex-col gap-4 w-full max-w-[240px]">
+        <div className="flex flex-col gap-4 w-full max-w-60">
           {status === 'IDLE' ? (
             <div className="grid grid-cols-2 gap-3">
               <button 
