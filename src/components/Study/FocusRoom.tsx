@@ -24,7 +24,6 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // ... (Keep existing useEffect logic for initial sync and timer logic)
   useEffect(() => {
     const initFocusRoom = async () => {
       if (!user) return;
@@ -127,11 +126,10 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
   return (
     <div ref={containerRef} className="focus-room-scope min-h-screen bg-[#000d3d] text-[#e6ccb2] flex items-center justify-center p-4 relative overflow-hidden">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@200;400;600;700&display=swap');
         
         .tech-font { font-family: 'Inter', sans-serif; }
-        .pixel-font { font-family: 'Press Start 2P', monospace; }
-
+        
         .bg-gradient-mesh {
           background-color: #000d3d;
           background-image: 
@@ -143,72 +141,85 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
         }
 
         .glass-altar {
-          background: rgba(0, 13, 61, 0.6);
-          backdrop-filter: blur(40px);
-          border: 1px solid rgba(230, 204, 178, 0.15);
-          border-radius: 60px;
-          box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6);
-          position: relative;
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(230, 204, 178, 0.1);
+          border-radius: 40px;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+          width: 100%;
+          max-width: 450px;
+          padding: 2rem;
           z-index: 5;
+          position: relative;
         }
 
-        .timer-glow-active {
-          filter: drop-shadow(0 0 30px #7a98b9);
-        }
-
-        .journal-drawer {
+        /* JOURNAL MODAL CENTERED */
+        .journal-modal {
           position: fixed;
-          background: rgba(0, 13, 61, 0.95);
-          backdrop-filter: blur(30px);
-          transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-          z-index: 100;
-          border-color: rgba(230, 204, 178, 0.1);
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) scale(${isJournalOpen ? '1' : '0.9'});
+          width: 95%;
+          max-width: 600px;
+          height: 80vh;
+          max-height: 700px;
+          background: rgba(0, 13, 61, 0.8);
+          backdrop-filter: blur(40px);
+          border: 1px solid rgba(230, 204, 178, 0.2);
+          border-radius: 30px;
+          z-index: 200;
+          opacity: ${isJournalOpen ? '1' : '0'};
+          visibility: ${isJournalOpen ? 'visible' : 'hidden'};
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.7);
         }
 
-        @media (max-width: 1024px) {
-          .journal-drawer {
-            bottom: 0; left: 0; right: 0; height: 80vh;
-            border-top: 1px solid #7a98b9;
-            transform: translateY(${isJournalOpen ? '0' : '100%'});
-            border-radius: 40px 40px 0 0;
-          }
-        }
-        @media (min-width: 1025px) {
-          .journal-drawer {
-            right: 0; top: 0; bottom: 0; width: 450px;
-            border-left: 1px solid #7a98b9;
-            transform: translateX(${isJournalOpen ? '0' : '100%'});
-          }
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 5, 20, 0.7);
+          backdrop-filter: blur(10px);
+          z-index: 150;
+          opacity: ${isJournalOpen ? '1' : '0'};
+          visibility: ${isJournalOpen ? 'visible' : 'hidden'};
+          transition: opacity 0.3s ease;
         }
 
         .btn-nav {
           background: rgba(230, 204, 178, 0.05);
           border: 1px solid rgba(230, 204, 178, 0.1);
-          padding: 8px 24px;
+          padding: 8px 20px;
           border-radius: 100px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.2s ease;
           color: #7a98b9;
+          font-size: 0.85rem;
+          white-space: nowrap;
         }
-        .btn-nav:hover:not(:disabled) { background: rgba(230, 204, 178, 0.15); color: #e6ccb2; }
-        .btn-nav.active { background: #e6ccb2; color: #000d3d; border-color: #e6ccb2; font-weight: 600; }
+        .btn-nav.active { background: #e6ccb2; color: #000d3d; font-weight: 600; }
 
         .orb-main {
-          width: 240px;
-          height: 64px;
+          width: 100%;
+          max-width: 200px;
+          height: 56px;
           border-radius: 100px;
           font-weight: 600;
-          letter-spacing: 3px;
-          transition: all 0.5s;
+          letter-spacing: 2px;
+          transition: all 0.3s ease;
           text-transform: uppercase;
         }
-        .orb-main.start { background: #e6ccb2; color: #000d3d; box-shadow: 0 15px 30px -10px rgba(230, 204, 178, 0.4); }
+        .orb-main.start { background: #e6ccb2; color: #000d3d; }
         .orb-main.stop { background: transparent; color: #e6ccb2; border: 1.5px solid #e6ccb2; }
-        .orb-main:hover { transform: translateY(-3px); box-shadow: 0 20px 40px -10px rgba(230, 204, 178, 0.5); }
 
-        .time-text {
-          font-variant-numeric: tabular-nums;
-          font-weight: 200;
-          letter-spacing: -4px;
+        .time-text-input {
+          font-size: clamp(60px, 15vw, 100px);
+          width: 1.8em;
+        }
+
+        @media (max-width: 640px) {
+          .glass-altar { padding: 1.5rem; border-radius: 30px; }
+          .nav-container { top: 20px !important; left: 20px !important; right: 20px !important; flex-direction: column !important; gap: 12px !important; }
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -218,58 +229,56 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
       <div className="absolute inset-0 bg-gradient-mesh opacity-40"></div>
       
       {/* NAV CONTROLS */}
-      <div className="absolute top-10 left-10 right-10 flex flex-col md:flex-row justify-between items-center gap-6 z-20">
-        <div className="flex gap-2 bg-[#000d3d]/40 p-2 rounded-full border border-[#e6ccb2]/10 backdrop-blur-xl">
+      <div className="nav-container absolute top-10 left-10 right-10 flex justify-between items-center z-20">
+        <div className="flex gap-2 bg-[#000d3d]/60 p-1.5 rounded-full border border-[#e6ccb2]/10 backdrop-blur-xl">
             <button onClick={() => setMode(TimerMode.POMODORO)} disabled={isActive} className={`btn-nav ${mode === TimerMode.POMODORO ? 'active' : ''}`}>{t('focus')}</button>
             <button onClick={() => setMode(TimerMode.SHORT_BREAK)} disabled={isActive} className={`btn-nav ${mode === TimerMode.SHORT_BREAK ? 'active' : ''}`}>{t('break')}</button>
         </div>
         
-        <div className="flex gap-4">
-            <button onClick={toggleFullscreen} className="btn-nav p-3 aspect-square flex items-center justify-center"><i className="fas fa-expand-alt"></i></button>
-            <button onClick={() => setIsJournalOpen(true)} className="btn-nav bg-[#e6ccb2]/10! text-[#e6ccb2]! border-[#e6ccb2]/30 flex items-center gap-3 px-8">
-                <i className="fas fa-feather-alt text-xs"></i>
-                <span className="font-bold tracking-[0.2em]">{t('journal')}</span>
+        <div className="flex gap-2">
+            <button onClick={toggleFullscreen} className="btn-nav w-10 h-10 p-0 flex items-center justify-center"><i className="fas fa-expand-alt text-xs"></i></button>
+            <button onClick={() => setIsJournalOpen(true)} className="btn-nav flex items-center gap-2 px-6">
+                <i className="fas fa-feather-alt text-[10px]"></i>
+                <span className="font-bold tracking-widest text-[10px] uppercase">{t('journal')}</span>
             </button>
         </div>
       </div>
 
       {/* MAIN ALTAR */}
-      <div className="glass-altar w-full max-w-125 h-137.5 flex flex-col items-center justify-center p-12 overflow-hidden">
+      <div className="glass-altar flex flex-col items-center justify-center text-center">
         {/* PROGRESS RING */}
-        <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-12">
-          <circle cx="50%" cy="50%" r="42%" fill="none" stroke="rgba(230,204,178,0.03)" strokeWidth="1" />
-          <circle cx="50%" cy="50%" r="42%" fill="none" 
+        <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-8">
+          <circle cx="50%" cy="50%" r="44%" fill="none" stroke="rgba(230,204,178,0.05)" strokeWidth="1" />
+          <circle cx="50%" cy="50%" r="44%" fill="none" 
                   stroke="#e6ccb2" 
                   strokeWidth="2" 
-                  strokeDasharray="264%"
-                  strokeDashoffset={`${264 - (progressPercent * 2.64)}%`}
+                  strokeDasharray="276%"
+                  strokeDashoffset={`${276 - (progressPercent * 2.76)}%`}
                   strokeLinecap="round"
-                  className="transition-all duration-1000 ease-linear opacity-20" />
+                  className="transition-all duration-1000 ease-linear opacity-30" />
         </svg>
 
-        <div className="text-center z-10 flex flex-col items-center">
-            <div className={`mono-text mb-10 tracking-[0.4em] uppercase transition-colors ${isActive ? 'text-[#e6ccb2]' : 'text-[#7a98b9]'}`}>
-                {isActive ? t('✦ Protocol Active') : t('✧ System Standby')}
+        <div className="z-10 w-full">
+            <div className={`text-[10px] mb-6 tracking-[0.3em] uppercase opacity-50 tech-font`}>
+                {isActive ? 'Protocol Active' : 'System Standby'}
             </div>
 
-            <div className={`mb-12 ${isActive ? 'timer-glow-active' : ''}`}>
+            <div className="mb-8">
               {isActive ? (
-                <div className="time-text text-[110px] leading-none text-[#e6ccb2]">
-                  {Math.floor((timeLeft % 3600) / 60).toString().padStart(2, '0')}
-                  <span className="opacity-20 mx-1">:</span>
+                <div className="tech-font font-light tracking-tighter leading-none text-[#e6ccb2]" style={{ fontSize: 'clamp(60px, 15vw, 100px)' }}>
+                  {Math.floor(timeLeft / 60).toString().padStart(2, '0')}
+                  <span className="opacity-20">:</span>
                   {(timeLeft % 60).toString().padStart(2, '0')}
                 </div>
               ) : (
-                <div className="flex flex-col items-center">
-                    <div className="relative flex items-center">
-                        <input 
-                            type="number" 
-                            value={customSettings[mode] || ''}
-                            onChange={(e) => handleManualTimeChange(e.target.value)}
-                            className="bg-transparent text-[110px] w-45 text-center outline-none border-b border-[#e6ccb2]/20 focus:border-[#e6ccb2] transition-all text-[#e6ccb2] font-light time-text"
-                        />
-                        <span className="absolute -right-10 bottom-6 text-sm uppercase tracking-widest text-[#7a98b9]">min</span>
-                    </div>
+                <div className="flex justify-center items-baseline">
+                    <input 
+                        type="number" 
+                        value={customSettings[mode] || ''}
+                        onChange={(e) => handleManualTimeChange(e.target.value)}
+                        className="bg-transparent text-center outline-none border-b border-[#e6ccb2]/20 focus:border-[#e6ccb2] transition-all text-[#e6ccb2] font-light tech-font time-text-input"
+                    />
+                    <span className="ml-2 text-xs uppercase tracking-widest opacity-40">m</span>
                 </div>
               )}
             </div>
@@ -280,40 +289,38 @@ export const FocusRoom: React.FC<FocusRoomProps> = ({ user, updateCoins }) => {
         </div>
       </div>
 
-      {/* SIDE JOURNAL */}
-      <div className="journal-drawer flex flex-col shadow-2xl">
-          <div className="p-10 flex justify-between items-end border-b border-[#e6ccb2]/5">
-            <div className="flex flex-col gap-1">
-                <span className="mono-text text-[#7a98b9] uppercase tracking-widest">{t('system_log')}</span>
-                <h2 className="text-3xl font-light text-[#e6ccb2] tracking-tighter">{t('session_journal')}</h2>
+      {/* CENTERED JOURNAL MODAL */}
+      <div className="modal-overlay" onClick={() => { saveNotesToDB(); setIsJournalOpen(false); }}></div>
+      
+      <div className="journal-modal">
+          <div className="p-6 md:p-8 flex justify-between items-center border-b border-[#e6ccb2]/10">
+            <div>
+                <span className="text-[10px] text-[#7a98b9] uppercase tracking-widest block mb-1">Session Notes</span>
+                <h2 className="text-xl md:text-2xl font-light text-[#e6ccb2]">Journal</h2>
             </div>
             <button onClick={() => { saveNotesToDB(); setIsJournalOpen(false); }} 
-                    className="w-12 h-12 rounded-full border border-[#e6ccb2]/10 flex items-center justify-center hover:bg-[#e6ccb2] hover:text-[#000d3d] transition-all">
+                    className="w-10 h-10 rounded-full border border-[#e6ccb2]/20 flex items-center justify-center hover:bg-[#e6ccb2] hover:text-[#000d3d] transition-all">
                 <i className="fas fa-times"></i>
             </button>
           </div>
 
-          <div className="flex-1 relative">
+          <div className="flex-1 overflow-hidden">
               <textarea 
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 onBlur={saveNotesToDB}
-                className="w-full h-full bg-transparent resize-none outline-none p-10 text-xl font-light leading-relaxed text-[#e6ccb2]/80 placeholder-[#7a98b9]/40 no-scrollbar"
-                placeholder="Transcribe your focus here..."
+                className="w-full h-full bg-transparent resize-none outline-none p-6 md:p-8 text-base md:text-lg font-light leading-relaxed text-[#e6ccb2]/80 placeholder-[#7a98b9]/30 no-scrollbar"
+                placeholder="What are you focusing on?"
               />
           </div>
 
-          <div className="p-10 bg-[#000d3d] border-t border-[#e6ccb2]/10 flex gap-4">
-            <button onClick={downloadNotes} className="flex-1 bg-[#e6ccb2] text-[#000d3d] py-5 rounded-full font-bold flex items-center justify-center gap-3 transition-all hover:opacity-90">
+          <div className="p-6 md:p-8 bg-[#000d3d]/40 border-t border-[#e6ccb2]/10">
+            <button onClick={downloadNotes} className="w-full bg-[#e6ccb2] text-[#000d3d] py-4 rounded-full font-bold flex items-center justify-center gap-3 transition-all active:scale-95">
                 <i className="fas fa-cloud-download-alt"></i>
                 {t('exportAsMD')}
             </button>
           </div>
       </div>
-
-      {isJournalOpen && (
-        <div className="fixed inset-0 bg-[#000d3d]/80 backdrop-blur-md z-90 lg:hidden" onClick={() => setIsJournalOpen(false)}></div>
-      )}
     </div>
   );
 };
